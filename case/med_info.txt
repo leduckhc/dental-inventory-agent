@@ -1,0 +1,77 @@
+1. LIDOCAINE 2% INJ.
+Description: An amide-type local anesthetic used for infiltration and nerve block anesthesia in dental procedures.
+Onset of Action: Rapid, typically within 2-5 minutes.
+Duration: Provides pulpal anesthesia for approximately 60 minutes.
+Indications: Routine dental extractions, cavity preparations, and minor oral surgery.
+Contraindications: Known hypersensitivity to amide-type anesthetics, severe heart block (atrioventricular block), or acute heart failure. Use with caution in patients with liver disease as amide anesthetics are metabolized in the liver.
+
+2. SEPTANEST WITH ADRENALINE (Articaine 4% + Epinephrine 1:100,000)
+Description: A potent local anesthetic combining Articaine (4%) with Epinephrine (1:100,000 or 1:200,000) as a vasoconstrictor.
+Clinical Advantage: High lipid solubility allows better penetration into bone tissue, making it ideal for complex extractions and long procedures.
+Precautions: Use with extreme caution in patients with hypertension, cardiac arrhythmias, or coronary artery disease due to the epinephrine content.
+Contraindications: Strictly prohibited for patients with untreated thyrotoxicosis (overactive thyroid) or those with known sulfite allergies (contains sodium metabisulfite as a stabilizer). Avoid use in areas with limited collateral circulation.
+
+3. ETHANOL 96% DENATURED
+Description: High-concentration denatured alcohol used strictly for surface disinfection and cleaning of non-critical dental instruments.
+Safety Warning: Highly flammable liquid. Store in a cool, well-ventilated area away from open flames or electrical sparks.
+Usage: Not for internal use or application on mucous membranes. Contact with oral mucosa can cause severe chemical burns.
+
+4. COMPOSITE FILLING (A2 SHADE)
+Description: A light-cured, resin-based dental restorative material used for aesthetic fillings in both anterior and posterior teeth.
+Storage: Must be stored in a dark place at room temperature (below 25°C).
+Technical Note: Highly sensitive to ambient light. Exposure to operatory lights or sunlight will trigger premature polymerization (hardening), rendering the material unusable. Ensure the cap is secured immediately after use.
+Contraindications: Do not use over zinc oxide eugenol bases — eugenol inhibits the polymerization of resin composites.
+
+5. ISOPROPYL ALCOHOL 70%
+Description: A mid-concentration alcohol used for surface disinfection of environmental surfaces and non-critical dental instruments.
+Safety Warning: Flammable liquid. Keep away from heat sources, open flames, and electrical equipment. Store in a sealed container in a cool, ventilated area.
+Usage Limitations: Not recommended as a skin antiseptic before injections due to insufficient residual antimicrobial activity. Avoid contact with acrylic or composite resin surfaces — prolonged exposure causes surface degradation and discolouration.
+Contraindications: Do not apply to open wounds or mucous membranes. Not suitable for sterilization — it is a disinfectant only.
+
+6. UBISTESIN 4% WITH ADRENALINE (Articaine 4% + Epinephrine 1:200,000)
+Description: A local anesthetic combining Articaine (4%) with a lower concentration of Epinephrine (1:200,000) compared to Septanest. Suitable for longer procedures where a reduced vasoconstrictor dose is preferred.
+Clinical Advantage: Lower epinephrine concentration reduces cardiovascular risk, making it preferable for patients with mild cardiovascular disease where a vasoconstrictor is still clinically necessary.
+Precautions: Same class as Septanest — use with caution in patients with hypertension, cardiac arrhythmias, or thyroid conditions.
+Contraindications: Contraindicated in untreated thyrotoxicosis and in patients with known sulfite allergies (contains sodium metabisulfite). Avoid in areas with severely compromised circulation.
+
+7. SODIUM HYPOCHLORITE 5.25%
+Description: The primary irrigant for root canal treatment (endodontics). Effectively dissolves organic tissue (pulp remnants, necrotic debris) and provides broad-spectrum antibacterial action.
+Usage: Used exclusively for intracanal irrigation during root canal procedures. Must be delivered carefully to avoid extrusion beyond the apex.
+Safety Warning: Cytotoxic to periapical tissues. Accidental injection into periapical tissue or soft tissue causes severe pain, swelling, and tissue necrosis. Always use with a side-vented needle and passive delivery pressure.
+Contraindications: Hypersensitivity to hypochlorites. Never used for surface disinfection of instruments or patient skin — it is corrosive and damages many materials.
+Storage: Store in a dark, cool environment. Degrades in light and heat, losing antimicrobial efficacy over time.
+
+8. CALCIUM HYDROXIDE PASTE (Ca(OH)2)
+Description: An intracanal medicament placed between endodontic appointments to maintain an alkaline environment, inhibit bacterial regrowth, and promote periapical healing.
+Additional Use: Used for direct and indirect pulp capping procedures in vital pulp therapy.
+Mechanism: High pH (approximately 12.5) denatures bacterial enzymes and promotes hard tissue formation.
+Safety Note: Generally considered biocompatible. However, prolonged contact (several months or more) with dentinal walls may cause cervical root fracture due to dentine dehydration. Remove completely before obturation.
+Contraindications: None significant at clinical concentrations. Avoid contact with eyes.
+
+9. CHLORHEXIDINE GLUCONATE 0.12%
+Description: An antiseptic oral rinse used pre- and post-operatively to reduce oral bacterial load and support wound healing after extractions or oral surgery.
+Mechanism: Broad-spectrum antiseptic active against gram-positive bacteria, gram-negative bacteria, and some fungi. Substantivity (residual activity on oral surfaces) lasts up to 12 hours.
+Side Effects: Temporary brown staining of teeth and tongue with prolonged use. Altered or bitter taste perception during treatment. Rarely, allergic reactions (urticaria, contact dermatitis).
+Contraindications: Known hypersensitivity to chlorhexidine gluconate. Avoid contact with eyes and ears. Not for injection or ingestion.
+Usage: Instruct patient to rinse for 30 seconds twice daily. Do not eat or drink for 30 minutes after use.
+
+10. GLASS IONOMER CEMENT — TYPE II (RESTORATIVE)
+Description: A fluoride-releasing restorative material that bonds chemically to enamel and dentine without the need for an adhesive system. The fluoride release provides ongoing caries protection around the restoration margins.
+Indications: Class V cavities (cervical erosion lesions), root caries in elderly patients, and restorations in low stress-bearing areas. Also used as a liner or base under composite resin.
+Application Note: Acid etching is NOT required. Condition the cavity with 10% polyacrylic acid for 10-20 seconds only. Prolonged conditioning weakens the bond.
+Limitations: Lower fracture toughness and wear resistance than composite resin. Not recommended for load-bearing posterior restorations (occlusal surfaces of molars) or areas of heavy occlusal contact.
+Storage: Store components (powder and liquid) separately at room temperature. Do not refrigerate the liquid.
+
+11. HYDROGEN PEROXIDE 3%
+Description: A mild antiseptic solution used for wound irrigation in oral surgery and as an auxiliary irrigant during root canal procedures (in combination with sodium hypochlorite).
+Usage: Apply with a syringe or soaked gauze for short-contact wound irrigation. Effervescence (oxygen release) mechanically dislodges debris from wound sites.
+Safety: At 3% concentration, considered low-risk. Avoid prolonged contact with oral mucosa — it can cause superficial mucosal irritation and temporary whitening.
+Contraindications: Do not use in deep, closed, or undermined wounds — released oxygen can cause subcutaneous emphysema or air embolism. Do not use concentrations above 3% without specific clinical indication and additional safety protocols.
+Storage: Keep in a tightly sealed, opaque container away from light and heat. Degrades over time — discard if no effervescence is observed upon testing.
+
+12. ZINC OXIDE EUGENOL CEMENT (TEMPORARY RESTORATION)
+Description: A two-component temporary restorative cement (zinc oxide powder + eugenol liquid) used for temporary cavity sealing and as a pulp sedative dressing in symptomatic teeth.
+Clinical Benefit: The eugenol component provides analgesic and mild anti-inflammatory effect on the exposed pulp, reducing patient sensitivity between appointments.
+Setting Time: Approximately 3-5 minutes in the oral environment (humidity accelerates setting).
+Critical Contraindication: Incompatible with resin composite restorations. Residual eugenol on cavity walls inhibits the polymerization of composite resin, leading to soft, under-cured restorations. Always remove all traces and apply a eugenol-free base before placing composite.
+Additional Contraindication: Some patients exhibit contact sensitivity to eugenol. Discontinue use if allergic reaction occurs.

@@ -1,0 +1,20 @@
+[project]
+name = "ai-dentail-agent"
+version = "0.1.0"
+description = "LangGraph dental inventory agent with RAG knowledge base and deterministic safety guardrails"
+requires-python = ">=3.11"
+dependencies = [
+    "faiss-cpu>=1.13.2",
+    "langchain>=1.2.14",
+    "langchain-community>=0.4.1",
+    "langchain-openai>=1.1.12",
+    "langgraph>=1.1.4",
+    "pydantic>=2.12.5",
+    "pytest>=9.0.2",
+    "sentence-transformers>=5.3.0",
+    "sqlalchemy>=2.0.48",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"

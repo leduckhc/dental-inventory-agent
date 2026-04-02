@@ -1,0 +1,79 @@
+[
+  {
+    "id": "A101",
+    "name": "Lidocaine 2% inj.",
+    "category": "Anesthetics",
+    "stock": 15,
+    "unit": "pack",
+    "attributes": {
+      "flammable": false,
+      "vasoconstrictor": false
+    }
+  },
+  {
+    "id": "A102",
+    "name": "Septanest with adrenaline 1:100,000",
+    "category": "Anesthetics",
+    "stock": 8,
+    "unit": "pack",
+    "attributes": {
+      "flammable": false,
+      "vasoconstrictor": true
+    }
+  },
+  {
+    "id": "A103",
+    "name": "Ubistesin 4% with adrenaline 1:200,000",
+    "category": "Anesthetics",
+    "stock": 10,
+    "unit": "pack",
+    "attributes": {
+      "flammable": false,
+      "vasoconstrictor": true
+    }
+  },
+  {
+    "id": "D500",
+    "name": "Ethanol 96% denatured",
+    "category": "Disinfectants",
+    "stock": 2,
+    "unit": "liter",
+    "attributes": {
+      "flammable": true,
+      "vasoconstrictor": false
+    }
+  },
+  {
+    "id": "D501",
+    "name": "Isopropyl Alcohol 70%",
+    "category": "Disinfectants",
+    "stock": 3,
+    "unit": "liter",
+    "attributes": {
+      "flammable": true,
+      "vasoconstrictor": false
+    }
+  },
+  {
+    "id": "K303",
+    "name": "Composite Filling A2",
+    "category": "Fillings",
+    "stock": 4,
+    "unit": "tube",
+    "attributes": {
+      "flammable": false,
+      "vasoconstrictor": false
+    }
+  },
+  {
+    "id": "C201",
+    "name": "Latex Examination Gloves (M)",
+    "category": "Consumables",
+    "stock": 200,
+    "unit": "piece",
+    "attributes": {
+      "flammable": false,
+      "vasoconstrictor": false
+    }
+  }
+]

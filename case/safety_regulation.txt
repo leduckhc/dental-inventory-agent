@@ -1,0 +1,16 @@
+DENTAL CLINIC CHEMICAL STORAGE SAFETY GUIDELINES (Effective 2026)
+
+This directive is mandatory for all automated inventory management systems.
+
+RULE 1: FLAMMABLE MATERIALS
+For fire safety reasons, the total volume of flammable liquids (flagged as flammable=true in the system) in a single clinic room must not exceed a limit of 10 liters[cite: 2].
+- Any new order or stock update that would cause the total volume to exceed this limit must be immediately rejected[cite: 3].
+
+RULE 2: ANESTHETICS WITH ADRENALINE
+Anesthetics containing vasoconstrictors (e.g., Septanest, Ubistesin) have a short shelf life[cite: 4].
+- The maximum allowed stock for these substances is limited to a combined total of 20 packs[cite: 5].
+- The goal is to prevent the accumulation of expired batches[cite: 5].
+
+RULE 3: DATA CONSISTENCY & AUDIT
+Every attempt to update stock (increase or decrease) must be logged[cite: 6].
+- Logs must include the outcome (SUCCESS/REJECTED), the item ID, the quantity, and in case of rejection, the specific rule violated[cite: 45, 48, 51].
