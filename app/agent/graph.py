@@ -3,9 +3,10 @@
 Graph structure:
   START → agent_node → (has tool calls?) → tool_node → agent_node → ... → END
 
-The agent uses the vLLM OpenAI-compatible API with Qwen3.5-9B-Instruct.
-Thinking mode is explicitly disabled to prevent <think> tokens from corrupting
-tool call JSON (Qwen3+ specific requirement).
+The agent uses the vLLM OpenAI-compatible API with Qwen3.5-9B.
+Qwen3+ emits thinking output in the `reasoning` field of the response, which
+LangChain ignores. The `content` field is always the clean response text.
+No client-side enable_thinking flag is needed.
 """
 
 import os
@@ -20,14 +21,16 @@ from langgraph.prebuilt import ToolNode
 from app.tools.inventory_tools import ALL_TOOLS, set_sessions
 
 VLLM_BASE_URL = os.environ.get("VLLM_BASE_URL", "http://localhost:9000/v1")
-MODEL_NAME = os.environ.get("VLLM_MODEL", "Qwen/Qwen3.5-9B-Instruct")
+MODEL_NAME = os.environ.get("VLLM_MODEL", "Qwen/Qwen3.5-9B")
 
 SYSTEM_PROMPT = """You are a dental clinic inventory assistant. You help clinic staff with two tasks:
 
 1. **Medication & material information** — use `query_knowledge` to answer questions
    about dental materials: usage, contraindications, storage, safety.
-   If the knowledge base doesn't have the answer, say so clearly. Do NOT guess or invent
-   medical information.
+   If `query_knowledge` returns no relevant information, respond with exactly:
+   "I don't have information about this in the clinic's knowledge base."
+   Do NOT add general medical knowledge, common sense, or anything beyond what
+   `query_knowledge` returned. Stop there.
 
 2. **Inventory management** — use `get_inventory`, `search_inventory`, `update_stock`,
    and `consume_stock` to view and manage stock levels.
@@ -62,11 +65,6 @@ def build_agent(inv_session, audit_session):
         api_key="not-required",
         model=MODEL_NAME,
         temperature=0,
-        model_kwargs={
-            "extra_body": {
-                "chat_template_kwargs": {"enable_thinking": False}
-            }
-        },
     )
 
     llm_with_tools = llm.bind_tools(ALL_TOOLS)

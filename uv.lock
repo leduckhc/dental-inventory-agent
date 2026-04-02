@@ -14,10 +14,12 @@ dependencies = [
     { name = "faiss-cpu" },
     { name = "langchain" },
     { name = "langchain-community" },
+    { name = "langchain-huggingface" },
     { name = "langchain-openai" },
     { name = "langgraph" },
     { name = "pydantic" },
     { name = "pytest" },
+    { name = "python-dotenv" },
     { name = "sentence-transformers" },
     { name = "sqlalchemy" },
 ]
@@ -27,10 +29,12 @@ requires-dist = [
     { name = "faiss-cpu", specifier = ">=1.13.2" },
     { name = "langchain", specifier = ">=1.2.14" },
     { name = "langchain-community", specifier = ">=0.4.1" },
+    { name = "langchain-huggingface", specifier = ">=0.1.0" },
     { name = "langchain-openai", specifier = ">=1.1.12" },
     { name = "langgraph", specifier = ">=1.1.4" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pytest", specifier = ">=9.0.2" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "sentence-transformers", specifier = ">=5.3.0" },
     { name = "sqlalchemy", specifier = ">=2.0.48" },
 ]
@@ -926,6 +930,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/83/5a/6038561335ae6bf1ff096e7d9e29927995ed61c4723a7e282d6270b978fb/langchain_core-1.2.24.tar.gz", hash = "sha256:9f9bc085cffb6471d0f9878dc3c083cd74d33a70d3bd03bb6dbc6107b9afd9c8", size = 841888, upload-time = "2026-04-01T20:00:45.968Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/99/7a/88c66ffaa0c1a262e39e3933af4d0a568c69453b73467377f4d42c7bd6bf/langchain_core-1.2.24-py3-none-any.whl", hash = "sha256:9b5b41cf55ac9907a3b6a61ce36ce77efe87ef1e163fac9a0deced8a69392472", size = 506781, upload-time = "2026-04-01T20:00:44.446Z" },
+]
+
+[[package]]
+name = "langchain-huggingface"
+version = "1.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "huggingface-hub" },
+    { name = "langchain-core" },
+    { name = "tokenizers" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/42/5b/4910551367de5c6ec246616fcc0ddb0bc6f9e5d353d4a22dcb5ab1f87e60/langchain_huggingface-1.2.1.tar.gz", hash = "sha256:33d52a30a56775380c6b4321b78136a410eb079132a80fe7120ddd4b954b4efa", size = 253106, upload-time = "2026-03-02T18:44:39.163Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bc/90/a1440bfa467a6dd9025ad80f3c239554de28aec49dacfb369fda92871556/langchain_huggingface-1.2.1-py3-none-any.whl", hash = "sha256:0930c216a457d2c8dc7b39a756c39c567f1d88593bfee2c3441f3ae718435f0f", size = 30924, upload-time = "2026-03-02T18:44:37.745Z" },
 ]
 
 [[package]]

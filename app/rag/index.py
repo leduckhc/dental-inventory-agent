@@ -7,13 +7,13 @@ No OpenAI API key required.
 from functools import lru_cache
 from typing import List, Tuple
 
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 
 from app.rag.loader import load_med_documents
 
-EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+EMBEDDING_MODEL = "BAAI/bge-base-en-v1.5"
 TOP_K = 3
 SIMILARITY_THRESHOLD = 0.4  # below this score → agent should admit it doesn't know
 
