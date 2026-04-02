@@ -6,31 +6,28 @@ A LangGraph-based ReAct agent for dental clinic inventory management with RAG-po
 
 ```bash
 # Install dependencies
-uv sync
+make install                    # or: uv sync
+
+# Configure the agent
+cp .env.example .env
+# Edit .env and set VLLM_BASE_URL=http://<your-server>:9000/v1
+
+# Start vLLM server
+make vllm                      # or: vllm serve "Qwen/Qwen3.5-9B" --enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3 --port 9000
 
 # Run the agent (migrates inventory.json on first run)
-uv run python main.py
+make run                       # or: uv run python main.py
+make run-debug                 # or: uv run python main.py --debug
 
 # Run tests (no LLM required)
-uv run pytest tests/ -v
+make test                      # or: uv run pytest
+make test-verbose              # or: uv run pytest -v
+
+# See all available commands
+make help
 ```
 
 **Requires:** vLLM running with `Qwen/Qwen3.5-9B`. Copy `.env.example` to `.env` and set your server URL.
-
-Start vLLM:
-```bash
-vllm serve "Qwen/Qwen3.5-9B" \
-  --enable-auto-tool-choice \
-  --tool-call-parser qwen3_coder \
-  --reasoning-parser qwen3 \
-  --port 9000
-```
-
-Configure the agent:
-```bash
-cp .env.example .env
-# Edit .env and set VLLM_BASE_URL=http://<your-server>:9000/v1
-```
 
 ---
 
@@ -50,7 +47,7 @@ Two hard limits enforced in Python code before any database write:
 These are deterministic — not prompt-based. "Ignore all previous instructions" has no effect on the math.
 
 **Part 4 — Validation & tests**
-31 pytest tests covering all guardrail edge cases, Pydantic validation, repository read helpers, and audit log integrity. Zero LLM calls in the test suite.
+45 pytest tests covering all guardrail edge cases, Pydantic validation, RAG loader parsing, repository read helpers, and audit log integrity. Zero LLM calls in the test suite.
 
 ---
 
