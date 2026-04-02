@@ -36,20 +36,20 @@ cp .env.example .env
 
 ## What it does
 
-**Part 1 — Knowledge base (RAG)**  
+**Part 1 — Knowledge base (RAG)**
 Answers questions about dental materials (contraindications, storage, safety) using `med_info.txt`. Built on FAISS + `BAAI/bge-base-en-v1.5` embeddings. Admits ignorance when similarity score is below threshold instead of hallucinating.
 
-**Part 2 — Inventory management**  
+**Part 2 — Inventory management**
 View stock, record consumption, order supplies. All mutations go through SQLAlchemy transactions with full audit logging.
 
-**Part 3 — Safety guardrails**  
+**Part 3 — Safety guardrails**
 Two hard limits enforced in Python code before any database write:
 - **Rule 1:** Total flammable liquid stock ≤ 10 liters (fire safety)
 - **Rule 2:** Total vasoconstrictor anesthetic stock ≤ 20 packs (expiry risk)
 
 These are deterministic — not prompt-based. "Ignore all previous instructions" has no effect on the math.
 
-**Part 4 — Validation & tests**  
+**Part 4 — Validation & tests**
 31 pytest tests covering all guardrail edge cases, Pydantic validation, repository read helpers, and audit log integrity. Zero LLM calls in the test suite.
 
 ---
@@ -79,19 +79,19 @@ tests/
 
 ### Key design decisions
 
-**Why deterministic guardrails instead of prompt-based?**  
+**Why deterministic guardrails instead of prompt-based?**
 The task requires that safety rules cannot be overridden by user input. Prompt-based guardrails (like NeMo) are evaluated by the LLM and can be manipulated. Python functions that run BEFORE any database write are not part of the prompt at all — they are code.
 
-**Why the two-session pattern?**  
+**Why the two-session pattern?**
 `safety_regulation.txt` Rule 3 requires logging every attempt, including rejections. If the inventory transaction rolls back (guardrail failure), a single-session approach would also roll back the audit log. Using a separate `audit_session` that commits independently ensures compliance regardless of what happens to the inventory transaction.
 
-**Why SQLite from day one?**  
+**Why SQLite from day one?**
 The audit log is a relational artifact — it needs to be queryable, durable, and survive restarts. A text file doesn't satisfy Rule 3 properly. SQLite adds no deployment complexity and the SQLAlchemy ORM makes migration to PostgreSQL a one-line change.
 
-**Why `BAAI/bge-base-en-v1.5`?**  
+**Why `BAAI/bge-base-en-v1.5`?**
 Local, no API key, strong English retrieval (768-dim). The knowledge base has 12 documents — FAISS with a local embedder is the right scope. There is no reason to call an external embedding API for a 12-document corpus.
 
-**Why chunk by numbered item instead of fixed tokens?**  
+**Why chunk by numbered item instead of fixed tokens?**
 Each item in `med_info.txt` is a clinical unit. Splitting mid-description would separate a contraindication from its context. Semantic chunking by item number preserves complete clinical context per vector.
 
 ---
