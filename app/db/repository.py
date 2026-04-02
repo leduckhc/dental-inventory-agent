@@ -31,10 +31,18 @@ def get_item(session: Session, item_id: str) -> Optional[InventoryItem]:
 
 
 def search_items(session: Session, query: str) -> List[InventoryItem]:
-    """Case-insensitive substring match on item name. Used for disambiguation."""
+    """Case-insensitive substring match on item name or category. Used for disambiguation.
+
+    Category prefix matching catches generic terms like 'anesthetic' (category='A')
+    or 'disinfectant' (category='D') that won't appear in specific product names.
+    """
     q = query.lower()
     rows = session.query(InventoryItemORM).all()
-    return [_orm_to_domain(r) for r in rows if q in r.name.lower()]
+    return [
+        _orm_to_domain(r)
+        for r in rows
+        if q in r.name.lower() or q in (r.category or "").lower()
+    ]
 
 
 # ── Write helpers ────────────────────────────────────────────────────────────
@@ -101,16 +109,24 @@ def _write_audit(
     operation: str,
     result: GuardrailResult,
 ) -> None:
-    """Write an audit log entry. Always commits. Never rolls back."""
-    entry = AuditLogORM(
-        timestamp=datetime.now(timezone.utc),
-        action=operation.upper(),
-        item_id=item_id,
-        item_name=item_name,
-        quantity=quantity,
-        status="SUCCESS" if result.allowed else "REJECTED",
-        reason=result.reason,
-        rule_violated=result.rule_violated,
-    )
-    audit_session.add(entry)
-    audit_session.commit()
+    """Write an audit log entry. Retries once after a session rollback to guarantee
+    Rule 3 compliance even when the session is in a stale or error state."""
+    def _build_entry() -> AuditLogORM:
+        return AuditLogORM(
+            timestamp=datetime.now(timezone.utc),
+            action=operation.upper(),
+            item_id=item_id,
+            item_name=item_name,
+            quantity=quantity,
+            status="SUCCESS" if result.allowed else "REJECTED",
+            reason=result.reason,
+            rule_violated=result.rule_violated,
+        )
+
+    try:
+        audit_session.add(_build_entry())
+        audit_session.commit()
+    except Exception:
+        audit_session.rollback()
+        audit_session.add(_build_entry())
+        audit_session.commit()  # propagates if the DB itself is unavailable

@@ -10,7 +10,11 @@ On first run, automatically migrates inventory.json → SQLite.
 
 import argparse
 
+from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage
+from sqlalchemy.exc import SQLAlchemyError
+
+load_dotenv()  # loads .env into os.environ before anything else runs
 
 from app.agent.graph import build_agent
 from app.db.migrate import load_inventory
@@ -60,7 +64,13 @@ def main():
 
             conversation.append(HumanMessage(content=user_input))
 
-            result = agent.invoke({"messages": conversation})
+            try:
+                result = agent.invoke({"messages": conversation})
+            except SQLAlchemyError as e:
+                print(f"\n[DB ERROR] {e}\nThe database operation failed. The conversation state has been reset.\n")
+                conversation = []
+                continue
+
             conversation = list(result["messages"])
 
             # Last message is the agent's response

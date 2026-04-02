@@ -15,7 +15,8 @@ Derived totals:
 """
 
 from app.db.repository import update_stock
-from app.db.schema import AuditLogORM
+from app.db.schema import AuditLogORM, InventoryItemORM
+from app.guardrails.checks import run_all_guardrails
 
 
 # ── Rule 1: Flammable limit (10L) ───────────────────────────────────────────
@@ -149,6 +150,15 @@ def test_audit_written_on_rejection(db_sessions):
     assert entry is not None
     assert entry.rule_violated == "safety_regulation.txt Rule 1"
     assert entry.reason is not None
+
+
+def test_unknown_operation_rejected(db_sessions):
+    """run_all_guardrails with unknown operation returns allowed=False (defensive fallback)."""
+    inv, _ = db_sessions
+    item = inv.get(InventoryItemORM, "A101")
+    result = run_all_guardrails(inv, item, 1.0, "transfer")
+    assert not result.allowed
+    assert "Unknown operation" in result.reason
 
 
 def test_audit_rejection_does_not_corrupt_inventory(db_sessions):

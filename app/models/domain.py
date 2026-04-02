@@ -1,6 +1,5 @@
 """Pydantic domain models — validation layer for all tool inputs and domain objects."""
 
-from datetime import datetime
 from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
@@ -36,15 +35,3 @@ class GuardrailResult(BaseModel):
     rule_violated: Optional[str] = None
     current_total: Optional[float] = None   # relevant quantity before the operation
     max_allowed: Optional[float] = None     # the limit that would be exceeded
-
-
-class AuditLogEntry(BaseModel):
-    id: Optional[int] = None
-    timestamp: datetime
-    action: str
-    item_id: str
-    item_name: str
-    quantity: float
-    status: Literal["SUCCESS", "REJECTED"]
-    reason: Optional[str] = None
-    rule_violated: Optional[str] = None
