@@ -8,6 +8,9 @@ A LangGraph-based ReAct agent for dental clinic inventory management with RAG-po
 # Install dependencies
 make install                    # or: uv sync
 
+# Optional: install git hooks so commits run ruff and other checks locally
+make pre-commit-install         # or: uv run pre-commit install
+
 # Configure the agent
 cp .env.example .env
 # Edit .env and set VLLM_BASE_URL=http://<your-server>:9000/v1
@@ -28,6 +31,8 @@ make help
 ```
 
 **Requires:** vLLM running with `Qwen/Qwen3.5-9B`. Copy `.env.example` to `.env` and set your server URL.
+
+**Git hooks:** After `make install`, run `make pre-commit-install` once if you want commits to run ruff and the other checks in `.pre-commit-config.yaml` automatically.
 
 ---
 

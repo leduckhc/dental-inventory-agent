@@ -1,4 +1,4 @@
-.PHONY: help install run run-debug test test-verbose migrate requirements vllm lint format pre-commit audit clean
+.PHONY: help install run run-debug test test-verbose migrate requirements vllm lint format pre-commit pre-commit-install audit clean
 
 # Default target
 help:
@@ -14,7 +14,8 @@ help:
 	@echo "  vllm             Start vLLM server (Qwen/Qwen3.5-9B on port 9000)"
 	@echo "  lint             Run ruff check (type annotations, imports, style)"
 	@echo "  format           Run ruff format"
-	@echo "  pre-commit       Run all pre-commit hooks against staged files"
+	@echo "  pre-commit       Run all pre-commit hooks on every tracked file"
+	@echo "  pre-commit-install  Install git hooks (run once after clone / make install)"
 	@echo "  audit            Scan dependencies for known CVEs (pip-audit)"
 	@echo "  clean            Remove generated DB and Python cache files"
 
@@ -47,6 +48,9 @@ format:
 
 pre-commit:
 	uv run pre-commit run --all-files
+
+pre-commit-install:
+	uv run pre-commit install
 
 audit:
 	uv run pip-audit --skip-editable
