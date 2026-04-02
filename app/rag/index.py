@@ -5,11 +5,10 @@ No OpenAI API key required.
 """
 
 from functools import lru_cache
-from typing import List, Tuple
 
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from app.rag.loader import load_med_documents
 
@@ -30,14 +29,14 @@ def get_index() -> FAISS:
     return FAISS.from_documents(docs, embeddings)
 
 
-def query_knowledge_base(query: str, k: int = TOP_K) -> Tuple[str, float]:
+def query_knowledge_base(query: str, k: int = TOP_K) -> tuple[str, float]:
     """Return (context_text, best_similarity_score).
 
     The caller (tool) should instruct the LLM to admit ignorance when
     best_score < SIMILARITY_THRESHOLD.
     """
     index = get_index()
-    results: List[Tuple[Document, float]] = index.similarity_search_with_score(query, k=k)
+    results: list[tuple[Document, float]] = index.similarity_search_with_score(query, k=k)
 
     if not results:
         return "", 0.0

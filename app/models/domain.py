@@ -1,6 +1,6 @@
 """Pydantic domain models — validation layer for all tool inputs and domain objects."""
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -21,6 +21,7 @@ class InventoryItem(BaseModel):
 
 class StockUpdateInput(BaseModel):
     """Input validation for update_stock and consume_stock tools."""
+
     item_id: str = Field(
         pattern=r"^[A-Z][0-9]{3}$",
         description="Inventory item ID, e.g. A101 or D500",
@@ -31,7 +32,7 @@ class StockUpdateInput(BaseModel):
 
 class GuardrailResult(BaseModel):
     allowed: bool
-    reason: Optional[str] = None
-    rule_violated: Optional[str] = None
-    current_total: Optional[float] = None   # relevant quantity before the operation
-    max_allowed: Optional[float] = None     # the limit that would be exceeded
+    reason: str | None = None
+    rule_violated: str | None = None
+    current_total: float | None = None  # relevant quantity before the operation
+    max_allowed: float | None = None  # the limit that would be exceeded

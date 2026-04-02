@@ -18,7 +18,6 @@ from app.db.repository import update_stock
 from app.db.schema import AuditLogORM, InventoryItemORM
 from app.guardrails.checks import run_all_guardrails
 
-
 # ── Rule 1: Flammable limit (10L) ───────────────────────────────────────────
 
 
@@ -145,7 +144,7 @@ def test_audit_written_on_success(db_sessions):
 def test_audit_written_on_rejection(db_sessions):
     """Rejected order writes a REJECTED audit entry — Rule 3 survives rollback."""
     inv, audit = db_sessions
-    update_stock(inv, audit, "D500", 100.0, "add")   # will be rejected
+    update_stock(inv, audit, "D500", 100.0, "add")  # will be rejected
     entry = audit.query(AuditLogORM).filter_by(item_id="D500", status="REJECTED").first()
     assert entry is not None
     assert entry.rule_violated == "safety_regulation.txt Rule 1"
@@ -167,5 +166,6 @@ def test_audit_rejection_does_not_corrupt_inventory(db_sessions):
     # Ethanol starts at 2L; trying to add 100L should be rejected
     update_stock(inv, audit, "D500", 100.0, "add")
     from app.db.schema import InventoryItemORM
+
     item = inv.get(InventoryItemORM, "D500")
-    assert item.stock == 2.0   # unchanged
+    assert item.stock == 2.0  # unchanged

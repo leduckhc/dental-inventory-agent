@@ -6,14 +6,13 @@ Chunking by item number rather than fixed tokens preserves full clinical context
 
 import re
 from pathlib import Path
-from typing import List
 
 from langchain_core.documents import Document
 
 MED_INFO_PATH = Path(__file__).parent.parent.parent / "case" / "med_info.txt"
 
 
-def load_med_documents(path: Path = MED_INFO_PATH) -> List[Document]:
+def load_med_documents(path: Path = MED_INFO_PATH) -> list[Document]:
     """Split med_info.txt into one Document per numbered section."""
     text = path.read_text(encoding="utf-8")
 
@@ -30,9 +29,15 @@ def load_med_documents(path: Path = MED_INFO_PATH) -> List[Document]:
         item_num = match.group(1) if match else "?"
         item_name = match.group(2).strip() if match else first_line
 
-        docs.append(Document(
-            page_content=section,
-            metadata={"item_number": item_num, "item_name": item_name, "source": "med_info.txt"},
-        ))
+        docs.append(
+            Document(
+                page_content=section,
+                metadata={
+                    "item_number": item_num,
+                    "item_name": item_name,
+                    "source": "med_info.txt",
+                },
+            )
+        )
 
     return docs

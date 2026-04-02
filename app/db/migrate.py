@@ -35,7 +35,7 @@ def load_inventory(db_url: str = "sqlite:///dental.db", json_path: Path = INVENT
                 flammable=bool(attrs.get("flammable", False)),
                 vasoconstrictor=bool(attrs.get("vasoconstrictor", False)),
             )
-            session.merge(item)   # upsert — safe to re-run
+            session.merge(item)  # upsert — safe to re-run
         session.commit()
         print(f"Loaded {len(items)} items into {db_url}")
     except Exception:

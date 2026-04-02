@@ -11,29 +11,26 @@ Tools:
   consume_stock     — record usage (negative-stock check enforced)
 """
 
-from typing import TYPE_CHECKING
-
 from langchain_core.tools import tool
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 
 from app.db.repository import (
     get_all_items,
     search_items,
+)
+from app.db.repository import (
     update_stock as repo_update_stock,
 )
 from app.models.domain import StockUpdateInput
 from app.rag.index import SIMILARITY_THRESHOLD, query_knowledge_base
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
-
 
 # Sessions are injected at agent build time via closure. See agent/graph.py.
 _inv_session = None
 _audit_session = None
 
 
-def set_sessions(inv_session, audit_session) -> None:
+def set_sessions(inv_session: Session, audit_session: Session) -> None:
     global _inv_session, _audit_session
     _inv_session = inv_session
     _audit_session = audit_session
@@ -64,10 +61,7 @@ def query_knowledge(query: str) -> str:
             "Please consult a pharmacist or the product's official documentation."
         )
 
-    return (
-        f"Based on the clinic's medical reference (med_info.txt):\n\n{context}\n\n"
-        f"[Relevance score: {score:.2f}]"
-    )
+    return f"Based on the clinic's medical reference (med_info.txt):\n\n{context}\n\n[Relevance score: {score:.2f}]"
 
 
 # ── Inventory reads ───────────────────────────────────────────────────────────
@@ -93,9 +87,7 @@ def get_inventory() -> str:
         if item.attributes.vasoconstrictor:
             flags.append("VASOCONSTRICTOR")
         flag_str = ", ".join(flags) if flags else "-"
-        lines.append(
-            f"{item.id:<6} {item.name:<45} {item.stock:>8.1f} {item.unit:<8} {flag_str}"
-        )
+        lines.append(f"{item.id:<6} {item.name:<45} {item.stock:>8.1f} {item.unit:<8} {flag_str}")
     return "\n".join(lines)
 
 
@@ -159,11 +151,7 @@ def update_stock(item_id: str, quantity: float) -> str:
 
     if result.allowed:
         return f"[SUCCESS] Added {quantity} to {item_id}. Stock updated."
-    return (
-        f"[REJECTED] Cannot order {quantity} of {item_id}.\n"
-        f"Reason: {result.reason}\n"
-        f"Rule: {result.rule_violated}"
-    )
+    return f"[REJECTED] Cannot order {quantity} of {item_id}.\nReason: {result.reason}\nRule: {result.rule_violated}"
 
 
 @tool
@@ -189,11 +177,7 @@ def consume_stock(item_id: str, quantity: float) -> str:
 
     if result.allowed:
         return f"[SUCCESS] Consumed {quantity} of {item_id}. Stock updated."
-    return (
-        f"[REJECTED] Cannot consume {quantity} of {item_id}.\n"
-        f"Reason: {result.reason}\n"
-        f"Rule: {result.rule_violated}"
-    )
+    return f"[REJECTED] Cannot consume {quantity} of {item_id}.\nReason: {result.reason}\nRule: {result.rule_violated}"
 
 
 ALL_TOOLS = [query_knowledge, get_inventory, search_inventory, update_stock, consume_stock]

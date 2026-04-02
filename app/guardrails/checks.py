@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.db.schema import InventoryItemORM
 from app.models.domain import GuardrailResult
 
-FLAMMABLE_LIMIT = 10.0   # liters — safety_regulation.txt Rule 1
+FLAMMABLE_LIMIT = 10.0  # liters — safety_regulation.txt Rule 1
 VASOCONSTRICTOR_LIMIT = 20  # packs — safety_regulation.txt Rule 2
 
 

@@ -31,15 +31,17 @@ def db_sessions():
         items = json.load(f)
     for raw in items:
         attrs = raw.get("attributes", {})
-        inv_session.merge(InventoryItemORM(
-            id=raw["id"],
-            name=raw["name"],
-            category=raw["category"],
-            stock=float(raw["stock"]),
-            unit=raw["unit"],
-            flammable=bool(attrs.get("flammable", False)),
-            vasoconstrictor=bool(attrs.get("vasoconstrictor", False)),
-        ))
+        inv_session.merge(
+            InventoryItemORM(
+                id=raw["id"],
+                name=raw["name"],
+                category=raw["category"],
+                stock=float(raw["stock"]),
+                unit=raw["unit"],
+                flammable=bool(attrs.get("flammable", False)),
+                vasoconstrictor=bool(attrs.get("vasoconstrictor", False)),
+            )
+        )
     inv_session.commit()
 
     yield inv_session, audit_session

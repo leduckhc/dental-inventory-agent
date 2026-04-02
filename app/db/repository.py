@@ -7,8 +7,7 @@ Two-session pattern:
 This guarantees Rule 3 (every attempt logged) even when Rule 1 or 2 rejects the order.
 """
 
-from datetime import datetime, timezone
-from typing import List, Optional
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -16,21 +15,20 @@ from app.db.schema import AuditLogORM, InventoryItemORM
 from app.guardrails.checks import run_all_guardrails
 from app.models.domain import GuardrailResult, InventoryItem, ItemAttributes
 
-
 # ── Read helpers ────────────────────────────────────────────────────────────
 
 
-def get_all_items(session: Session) -> List[InventoryItem]:
+def get_all_items(session: Session) -> list[InventoryItem]:
     rows = session.query(InventoryItemORM).order_by(InventoryItemORM.category, InventoryItemORM.name).all()
     return [_orm_to_domain(r) for r in rows]
 
 
-def get_item(session: Session, item_id: str) -> Optional[InventoryItem]:
+def get_item(session: Session, item_id: str) -> InventoryItem | None:
     row = session.get(InventoryItemORM, item_id)
     return _orm_to_domain(row) if row else None
 
 
-def search_items(session: Session, query: str) -> List[InventoryItem]:
+def search_items(session: Session, query: str) -> list[InventoryItem]:
     """Case-insensitive substring match on item name or category. Used for disambiguation.
 
     Category prefix matching catches generic terms like 'anesthetic' (category='A')
@@ -38,11 +36,7 @@ def search_items(session: Session, query: str) -> List[InventoryItem]:
     """
     q = query.lower()
     rows = session.query(InventoryItemORM).all()
-    return [
-        _orm_to_domain(r)
-        for r in rows
-        if q in r.name.lower() or q in (r.category or "").lower()
-    ]
+    return [_orm_to_domain(r) for r in rows if q in r.name.lower() or q in (r.category or "").lower()]
 
 
 # ── Write helpers ────────────────────────────────────────────────────────────
@@ -111,9 +105,10 @@ def _write_audit(
 ) -> None:
     """Write an audit log entry. Retries once after a session rollback to guarantee
     Rule 3 compliance even when the session is in a stale or error state."""
+
     def _build_entry() -> AuditLogORM:
         return AuditLogORM(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             action=operation.upper(),
             item_id=item_id,
             item_name=item_name,

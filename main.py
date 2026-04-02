@@ -13,16 +13,17 @@ import os
 
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langgraph.graph.state import CompiledStateGraph
 from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()  # loads .env into os.environ before anything else runs
 
-from app.agent.graph import build_agent
-from app.db.migrate import load_inventory
-from app.db.schema import InventoryItemORM, create_tables, make_engine, make_session_factory
+from app.agent.graph import build_agent  # noqa: E402
+from app.db.migrate import load_inventory  # noqa: E402
+from app.db.schema import InventoryItemORM, create_tables, make_engine, make_session_factory  # noqa: E402
 
 
-def _invoke_with_debug(agent, conversation: list) -> dict:
+def _invoke_with_debug(agent: CompiledStateGraph, conversation: list) -> dict:
     """Run the agent with step-by-step debug output.
 
     Streams each LangGraph node event and prints:
@@ -57,11 +58,15 @@ def _invoke_with_debug(agent, conversation: list) -> dict:
     return final_state
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Dental Inventory Agent")
     parser.add_argument("--db-url", default="sqlite:///dental.db", help="SQLAlchemy DB URL")
-    parser.add_argument("--debug", action="store_true", default=os.environ.get("DEBUG", "").lower() in ("1", "true"),
-                        help="Print tool calls, tool results, and LLM reasoning (also set DEBUG=1)")
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        default=os.environ.get("DEBUG", "").lower() in ("1", "true"),
+        help="Print tool calls, tool results, and LLM reasoning (also set DEBUG=1)",
+    )
     args = parser.parse_args()
 
     # DB setup

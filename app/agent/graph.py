@@ -10,13 +10,16 @@ No client-side enable_thinking flag is needed.
 """
 
 import os
-from typing import Annotated, Sequence, TypedDict
+from collections.abc import Sequence
+from typing import Annotated, TypedDict
 
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, StateGraph
 from langgraph.graph.message import add_messages
+from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
+from sqlalchemy.orm import Session
 
 from app.tools.inventory_tools import ALL_TOOLS, set_sessions
 
@@ -56,7 +59,7 @@ class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
 
 
-def build_agent(inv_session, audit_session):
+def build_agent(inv_session: Session, audit_session: Session) -> CompiledStateGraph:
     """Build and return the compiled LangGraph app.
 
     Sessions are injected here so tools have DB access without global state.
