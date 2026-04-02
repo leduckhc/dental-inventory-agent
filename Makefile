@@ -52,11 +52,13 @@ audit:
 	uv run pip-audit --skip-editable
 
 vllm:
+	@set -a; [ -f .env ] && . ./.env; set +a; \
 	CUDA_VISIBLE_DEVICES=1 vllm serve "Qwen/Qwen3.5-9B" \
 		--enable-auto-tool-choice \
 		--tool-call-parser qwen3_coder \
 		--reasoning-parser qwen3 \
-		--port 9000
+		--port 9000 \
+		$${VLLM_API_KEY:+--api-key $${VLLM_API_KEY}}
 
 clean:
 	rm -f dental.db
