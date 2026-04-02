@@ -9,9 +9,10 @@ On first run, automatically migrates inventory.json → SQLite.
 """
 
 import argparse
+import os
 
 from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from sqlalchemy.exc import SQLAlchemyError
 
 load_dotenv()  # loads .env into os.environ before anything else runs
@@ -21,9 +22,46 @@ from app.db.migrate import load_inventory
 from app.db.schema import InventoryItemORM, create_tables, make_engine, make_session_factory
 
 
+def _invoke_with_debug(agent, conversation: list) -> dict:
+    """Run the agent with step-by-step debug output.
+
+    Streams each LangGraph node event and prints:
+    - LLM tool call decisions (name + arguments)
+    - Tool results
+
+    Uses stream_mode="values" so the last yielded value is the complete final
+    state — no second invoke needed.
+    """
+    final_state = None
+    seen_message_ids: set = set()
+
+    for state in agent.stream({"messages": conversation}, stream_mode="values"):
+        final_state = state
+        for msg in state.get("messages", []):
+            msg_id = id(msg)
+            if msg_id in seen_message_ids:
+                continue
+            seen_message_ids.add(msg_id)
+
+            if isinstance(msg, AIMessage) and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    args_str = ", ".join(f"{k}={v!r}" for k, v in tc["args"].items())
+                    print(f"  [debug] tool_call  → {tc['name']}({args_str})")
+            elif isinstance(msg, ToolMessage):
+                content = msg.content
+                if len(content) > 400:
+                    content = content[:400] + "..."
+                indented = content.replace("\n", "\n    ")
+                print(f"  [debug] tool_result ← {msg.name}:\n    {indented}")
+
+    return final_state
+
+
 def main():
     parser = argparse.ArgumentParser(description="Dental Inventory Agent")
     parser.add_argument("--db-url", default="sqlite:///dental.db", help="SQLAlchemy DB URL")
+    parser.add_argument("--debug", action="store_true", default=os.environ.get("DEBUG", "").lower() in ("1", "true"),
+                        help="Print tool calls, tool results, and LLM reasoning (also set DEBUG=1)")
     args = parser.parse_args()
 
     # DB setup
@@ -65,7 +103,10 @@ def main():
             conversation.append(HumanMessage(content=user_input))
 
             try:
-                result = agent.invoke({"messages": conversation})
+                if args.debug:
+                    result = _invoke_with_debug(agent, conversation)
+                else:
+                    result = agent.invoke({"messages": conversation})
             except SQLAlchemyError as e:
                 print(f"\n[DB ERROR] {e}\nThe database operation failed. The conversation state has been reset.\n")
                 conversation = []

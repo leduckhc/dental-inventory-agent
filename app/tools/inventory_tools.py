@@ -116,11 +116,19 @@ def search_inventory(query: str) -> str:
     if not matches:
         return f"No items found matching '{query}'."
 
-    lines = [f"Found {len(matches)} item(s) matching '{query}':"]
+    if len(matches) == 1:
+        item = matches[0]
+        return f"Found 1 item: {item.id}  {item.name}  (stock: {item.stock} {item.unit})"
+
+    lines = [
+        f"AMBIGUOUS — {len(matches)} items match '{query}'.",
+        "You MUST ask the user which item they mean before calling update_stock or consume_stock.",
+        "Do NOT proceed with any item until the user specifies.",
+        "",
+        "Matching items:",
+    ]
     for item in matches:
         lines.append(f"  {item.id}  {item.name}  (stock: {item.stock} {item.unit})")
-    if len(matches) > 1:
-        lines.append("\nPlease clarify which item you mean.")
     return "\n".join(lines)
 
 
