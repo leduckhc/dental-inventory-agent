@@ -15,13 +15,14 @@ uv run python main.py
 uv run pytest tests/ -v
 ```
 
-**Requires:** vLLM running with `Qwen/Qwen3.5-9B-Instruct`. Copy `.env.example` to `.env` and set your server URL.
+**Requires:** vLLM running with `Qwen/Qwen3.5-9B`. Copy `.env.example` to `.env` and set your server URL.
 
 Start vLLM:
 ```bash
-vllm serve Qwen/Qwen3.5-9B-Instruct \
+vllm serve "Qwen/Qwen3.5-9B" \
   --enable-auto-tool-choice \
-  --tool-call-parser hermes \
+  --tool-call-parser qwen3_coder \
+  --reasoning-parser qwen3 \
   --port 9000
 ```
 
@@ -49,7 +50,7 @@ Two hard limits enforced in Python code before any database write:
 These are deterministic — not prompt-based. "Ignore all previous instructions" has no effect on the math.
 
 **Part 4 — Validation & tests**  
-22 pytest tests covering all guardrail edge cases, Pydantic validation, and audit log integrity. Zero LLM calls in the test suite.
+31 pytest tests covering all guardrail edge cases, Pydantic validation, repository read helpers, and audit log integrity. Zero LLM calls in the test suite.
 
 ---
 
@@ -71,8 +72,9 @@ app/
 └── models/domain.py            Pydantic models: StockUpdateInput, GuardrailResult, …
 tests/
 ├── conftest.py                 Fresh in-memory SQLite per test, seeded from inventory.json
-├── test_guardrails.py          15 guardrail tests (all rule edge cases)
-└── test_pydantic.py            7 validation tests
+├── test_guardrails.py          16 guardrail tests (all rule edge cases + unknown operation)
+├── test_pydantic.py            7 validation tests
+└── test_repository.py          8 repository read helper tests (get_item, search, category match)
 ```
 
 ### Key design decisions
@@ -128,25 +130,17 @@ What happens:
 
 The injection is irrelevant because the guardrail is not a prompt instruction.
 
+**Scope note:** These deterministic guardrails apply to inventory mutations only (`update_stock`, `consume_stock`). Knowledge queries (`query_knowledge`) are prompt-guided — the system prompt instructs the model to use the knowledge base and admit ignorance on low-confidence results, but there is no code-level retrieval gate. For a clinic prototype this is acceptable; in production, output validation (e.g., require citations) would be the right next step.
+
 ---
 
 ## vLLM / Model notes
 
-Model: `Qwen/Qwen3.5-9B-Instruct` (fits comfortably in 40GB VRAM)
+Model: `Qwen/Qwen3.5-9B` (fits comfortably in 40GB VRAM)
 
-Critical: Qwen3+ defaults to "thinking mode" which emits `<think>...</think>` tokens before the response. These corrupt tool call JSON in LangGraph. Must disable:
+Qwen3.5 uses an XML tool call format (`<function=...>`) that requires the `qwen3_coder` parser, not `hermes`. The `--reasoning-parser qwen3` flag separates thinking tokens from response content so LangChain always receives clean text in `content`.
 
-```python
-ChatOpenAI(
-    model_kwargs={
-        "extra_body": {
-            "chat_template_kwargs": {"enable_thinking": False}
-        }
-    }
-)
-```
-
-vLLM flags required: `--enable-auto-tool-choice --tool-call-parser hermes`
+vLLM flags required: `--enable-auto-tool-choice --tool-call-parser qwen3_coder --reasoning-parser qwen3`
 
 ---
 
@@ -157,3 +151,4 @@ vLLM flags required: `--enable-auto-tool-choice --tool-call-parser hermes`
 - **Reorder alerts:** Cron job queries `stock < reorder_threshold`, sends notification (email/Slack). The DB layer makes this a 20-line addition.
 - **Expiry tracking:** Add `expires_at` to inventory. Vasoconstrictor items (Septanest, Ubistesin) have short shelf life — already flagged in `safety_regulation.txt Rule 2`.
 - **Web UI:** FastAPI + simple HTML table. The tools layer is already HTTP-agnostic; add a `/chat` endpoint that drives the same LangGraph agent.
+- **Synonym/semantic search:** `search_inventory` is a substring match on item names. "anesthetic" won't match Lidocaine, Septanest, or Ubistesin. A category prefix search or a small synonym map (or reusing the FAISS embeddings already loaded for RAG) would close this gap without changing the tool interface.

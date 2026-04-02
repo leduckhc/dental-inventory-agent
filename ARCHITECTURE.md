@@ -1,499 +1,306 @@
-# Architecture: Conversational AI Dental Agent
+# Architecture: AI Dental Inventory Agent
 
-## Overview
-
-A conversational AI agent built with LangGraph/LangChain, featuring layered guardrails, real-time streaming of agent reasoning, and a split-panel chat UI. Designed for dental/medical domain use cases with appropriate safety, privacy, and compliance controls.
+A CLI-based LangGraph ReAct agent for dental clinic inventory management. Deterministic Python guardrails enforce safety rules at the code level — they cannot be overridden by user input or prompt injection.
 
 ---
 
-## High-Level Architecture
+## System overview
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend                              │
-│  Next.js + Auth Provider (Clerk/Auth0)                      │
-│  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐│
-│  │  Chat Panel   │ │Thinking Panel│ │ Consent Banner       ││
-│  └──────────────┘ └──────────────┘ └──────────────────────┘│
-└───────────────────────┬─────────────────────────────────────┘
-                        │ SSE + JWT Bearer token
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     API Gateway / Middleware                  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
-│  │ Auth     │ │ Rate     │ │ Request  │ │ CORS / HTTPS  │  │
-│  │ (JWT)    │ │ Limiter  │ │ Logging  │ │               │  │
-│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │
-└───────────────────────┬─────────────────────────────────────┘
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    FastAPI Application                        │
-│                                                              │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              LangGraph Agent                          │   │
-│  │                                                       │   │
-│  │  ┌─────────┐   ┌──────────┐   ┌─────────────────┐   │   │
-│  │  │ Input   │──►│ Reasoning│──►│ Tool Execution  │   │   │
-│  │  │ Guard   │   │ (+ retry │   │ (+ timeout      │   │   │
-│  │  │ (PII,   │   │  + timeout)│  │  + allowlist)   │   │   │
-│  │  │ inject) │   └──────────┘   └────────┬────────┘   │   │
-│  │  └────┬────┘                           │            │   │
-│  │       │ blocked                        ▼            │   │
-│  │       ▼           ┌─────────────────────────────┐   │   │
-│  │  ┌─────────┐      │ Output Guard               │   │   │
-│  │  │ Block   │      │ (toxicity, PII leakage,    │   │   │
-│  │  │ Response│      │  hallucination check)       │   │   │
-│  │  └─────────┘      └─────────────────────────────┘   │   │
-│  └──────────────────────────────────────────────────────┘   │
-│                                                              │
-│  ┌─────────────────┐  ┌────────────────────────────────┐   │
-│  │ Structured       │  │ OpenTelemetry Instrumentation  │   │
-│  │ Logging          │  │ (traces per request + LLM call)│   │
-│  │ (structlog/JSON) │  │                                │   │
-│  └────────┬────────┘  └──────────────┬─────────────────┘   │
-└───────────┼──────────────────────────┼──────────────────────┘
-            ▼                          ▼
-┌───────────────────┐    ┌──────────────────────────────────┐
-│ Log Aggregator    │    │ Observability                     │
-│ (ELK / CloudWatch │    │ ┌───────────┐ ┌───────────────┐  │
-│  / Loki)          │    │ │ Prometheus│ │ LangSmith /   │  │
-└───────────────────┘    │ │ + Grafana │ │ LangFuse      │  │
-                         │ └───────────┘ └───────────────┘  │
-                         └──────────────────────────────────┘
-            ┌──────────────────────────────┐
-            │ Persistence                   │
-            │ ┌──────────┐ ┌─────────────┐ │
-            │ │ PostgreSQL│ │ Redis       │ │
-            │ │ (state,   │ │ (rate limit,│ │
-            │ │  threads, │ │  sessions)  │ │
-            │ │  audit)   │ │             │ │
-            │ └──────────┘ └─────────────┘ │
-            └──────────────────────────────┘
+stdin
+  │
+  ▼
+main.py  ──────────────────────────────────────────────────────────
+  │  CLI loop: reads user input, calls agent.invoke(), prints reply
+  │
+  ▼
+app/agent/graph.py  (LangGraph ReAct graph)
+  │
+  │  START
+  │    │
+  │    ▼
+  │  agent_node  ──────────────────────────────────────────────────
+  │    │  ChatOpenAI → vLLM (Qwen3.5-9B)
+  │    │  reasoning field isolated from content ← no <think> contamination
+  │    │
+  │    ├── no tool calls? ──────────────────────────────► END
+  │    │
+  │    └── tool calls?
+  │          │
+  │          ▼
+  │        tool_node  (ToolNode prebuilt)
+  │          │
+  │          ├── query_knowledge(query)
+  │          │     └── FAISS similarity search over med_info.txt
+  │          │         (bge-small-en-v1.5, cached via @lru_cache)
+  │          │
+  │          ├── get_inventory()
+  │          │     └── repository.get_all_items(inv_session)
+  │          │
+  │          ├── search_inventory(query)
+  │          │     └── repository.search_items(inv_session, query)
+  │          │         substring match on name OR category
+  │          │
+  │          ├── update_stock(item_id, quantity)   ┐
+  │          │     └── StockUpdateInput (Pydantic)  │ validated first
+  │          │         └── repository.update_stock() │
+  │          │               ├── guardrails → reject │
+  │          │               └── inv_session.commit()│
+  │          │                   audit_session.commit│
+  │          │                                       │
+  │          └── consume_stock(item_id, quantity)   ┘
+  │
+  └── back to agent_node
 ```
 
 ---
 
-## Tech Stack
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Agent framework** | LangGraph, LangChain | Stateful agent graph, LLM wrappers, tool integrations |
-| **Backend API** | FastAPI, Uvicorn | Streaming HTTP server with SSE |
-| **Guardrails** | NeMo Guardrails + custom | Input/output safety checks |
-| **Frontend** | Next.js 14+ (App Router) | Chat UI with real-time thinking panel |
-| **UI components** | Tailwind CSS, shadcn/ui | Styling and component library |
-| **Streaming SDK** | Vercel AI SDK (`ai`) | First-class SSE/streaming support on the frontend |
-| **Auth** | OAuth 2.0 / OIDC (Auth0, Clerk, or Keycloak) | Identity and access management |
-| **Persistence** | PostgreSQL | Conversation state, threads, audit trail |
-| **Caching / Rate Limiting** | Redis | Session store, per-user rate limits |
-| **Logging** | structlog (JSON) | Structured, context-rich application logs |
-| **Metrics** | Prometheus + Grafana | Request, token, guardrail, and error metrics |
-| **Tracing** | OpenTelemetry | Distributed traces across API and agent nodes |
-| **LLM Observability** | LangSmith or LangFuse | Prompt versioning, cost tracking, conversation replay |
-
----
-
-## Project Structure
+## Component map
 
 ```
-ai-dental-agent/
-├── backend/
-│   ├── pyproject.toml                # Python dependencies
-│   ├── app/
-│   │   ├── main.py                   # FastAPI app, streaming endpoint, middleware
-│   │   ├── agent/
-│   │   │   ├── graph.py              # LangGraph state machine definition
-│   │   │   ├── nodes.py              # Individual node functions
-│   │   │   ├── state.py              # AgentState TypedDict
-│   │   │   └── tools.py              # Tool definitions and allowlists
-│   │   ├── guardrails/
-│   │   │   ├── input_guard.py        # Input validation (PII, injection, topic)
-│   │   │   ├── output_guard.py       # Output validation (toxicity, hallucination)
-│   │   │   └── config/               # NeMo Guardrails YAML configs
-│   │   ├── auth/
-│   │   │   ├── jwt.py                # JWT verification and user extraction
-│   │   │   └── permissions.py        # Role-based tool/feature access
-│   │   ├── middleware/
-│   │   │   ├── logging.py            # Request logging middleware
-│   │   │   ├── rate_limit.py         # Per-user rate limiting
-│   │   │   └── error_handler.py      # Global exception handling
-│   │   ├── observability/
-│   │   │   ├── metrics.py            # Prometheus metric definitions
-│   │   │   └── tracing.py            # OpenTelemetry setup
-│   │   ├── config.py                 # pydantic-settings configuration
-│   │   └── schemas.py                # Pydantic request/response models
-│   └── tests/
-│       ├── test_nodes.py             # Unit tests for individual agent nodes
-│       ├── test_graph.py             # Integration tests for full graph execution
-│       ├── test_guardrails.py        # Guardrail edge case tests
-│       └── test_streaming.py         # SSE streaming contract tests
-├── frontend/
-│   ├── package.json
-│   ├── app/
-│   │   ├── layout.tsx                # Root layout with auth provider
-│   │   ├── page.tsx                  # Main chat page
-│   │   ├── components/
-│   │   │   ├── ChatPanel.tsx         # Message list and input
-│   │   │   ├── ThinkingPanel.tsx     # Real-time agent reasoning display
-│   │   │   ├── MessageBubble.tsx     # Individual message rendering
-│   │   │   └── ConsentBanner.tsx     # AI-generated content disclaimer
-│   │   └── hooks/
-│   │       └── useStreamingChat.ts   # SSE streaming hook
-│   └── tailwind.config.ts
-├── docker-compose.yml                # Local dev: app + postgres + redis
-└── README.md
+main.py                         CLI loop + session lifecycle
+app/
+├── agent/
+│   └── graph.py                LangGraph graph, vLLM config, system prompt
+├── tools/
+│   └── inventory_tools.py      5 @tool functions; Pydantic input validation
+├── guardrails/
+│   └── checks.py               Pure Python safety rules (not tools)
+├── db/
+│   ├── schema.py               SQLAlchemy ORM: InventoryItemORM, AuditLogORM
+│   ├── migrate.py              inventory.json → SQLite (upsert, re-runnable)
+│   └── repository.py           DB reads/writes; two-session audit pattern
+├── rag/
+│   ├── loader.py               med_info.txt → 12 Documents (one per item)
+│   └── index.py                FAISS index + query_knowledge_base()
+└── models/
+    └── domain.py               Pydantic: InventoryItem, StockUpdateInput, GuardrailResult
+tests/
+├── conftest.py                 In-memory SQLite fixture, seeded from inventory.json
+├── test_guardrails.py          Guardrail correctness + audit log + DB state
+├── test_pydantic.py            StockUpdateInput validation edge cases
+└── test_repository.py          Read helper unit tests (get_item, search, category)
 ```
 
 ---
 
-## Agent Graph Design
+## Guardrail flow
 
-The agent is modeled as a LangGraph state machine. Each node performs a single responsibility, and conditional edges control routing.
+Safety rules run synchronously in Python before any DB write. The LLM has no path to bypass them — they are not tools and are not in the prompt.
 
-### State Definition
+```
+update_stock tool called
+        │
+        ▼
+  StockUpdateInput  ──── invalid? ──► ValidationError → tool returns error string
+  (Pydantic)
+        │ valid
+        ▼
+  repository.update_stock(inv_session, audit_session, item_id, qty, op)
+        │
+        ├── item not found? ──────────────────────────────────────────┐
+        │                                                              │
+        ▼                                                              │
+  run_all_guardrails(inv_session, item, qty, op)                       │
+        │                                                              │
+        │  consume → check_negative_stock()                           │
+        │  add     → check_flammable_limit()                          │
+        │            → check_vasoconstrictor_limit()                  │
+        │                                                              │
+        ├── REJECTED ────────────────────────────────────────────────►│
+        │              [inv_session untouched]                         │
+        │                                                              │
+        ▼                                                              │
+  inv_session.commit()   ← inventory written                           │
+        │                                                              │
+        ▼                                                              ▼
+  _write_audit(audit_session, ..., SUCCESS)    _write_audit(audit_session, ..., REJECTED)
+        │                                              │
+        └──────────────────┬───────────────────────────┘
+                           ▼
+                  audit_session.commit()
+                  (retry once on session error — Rule 3 guarantee)
+```
+
+---
+
+## Two-session audit pattern
+
+Rule 3 (`safety_regulation.txt`) requires logging every attempt, including rejections.
+
+With a single session: a guardrail rejection triggers rollback → audit entry lost.
+
+With two sessions:
+
+```
+inv_session    — inventory table; rolled back on guardrail failure
+audit_session  — audit_logs table; always commits independently
+
+Result: every attempt is logged, success or rejection, with no exceptions.
+```
+
+The `_write_audit` function retries once after a session rollback to handle transient session state errors. If the second attempt also fails, the exception propagates — failures are never swallowed silently.
+
+---
+
+## RAG pipeline
+
+```
+startup
+  │
+  └── app/rag/index.py: get_index()  [@lru_cache — called once]
+        │
+        ├── load_med_documents()     parse med_info.txt by numbered section
+        │   → 12 Documents, one per item (semantic chunking preserves clinical context)
+        │
+        └── FAISS.from_documents(docs, HuggingFaceEmbeddings("BAAI/bge-small-en-v1.5"))
+            normalize_embeddings=True, device=cpu
+
+query_knowledge(query) tool call
+  │
+  └── query_knowledge_base(query, k=3)
+        ├── similarity_search_with_score → top-3 chunks + L2 distances
+        ├── convert to similarity: sim = 1 / (1 + dist)
+        └── best_score < 0.4? → "I don't have information about this topic"
+            best_score ≥ 0.4? → return combined context to LLM
+```
+
+Note: the similarity threshold (0.4) is calibrated to the `1/(1+dist)` formula, not raw cosine. Consistent throughout — the threshold can be tuned empirically.
+
+---
+
+## Data models
+
+### SQLAlchemy ORM
 
 ```python
-from typing import TypedDict, Annotated, Sequence
-from langchain_core.messages import BaseMessage
-import operator
+class InventoryItemORM(Base):
+    id           String  PK        # e.g. "A101", "D500"
+    name         String  NOT NULL
+    category     String  NOT NULL  # "Anesthetics", "Disinfectants", ...
+    stock        Float   NOT NULL
+    unit         String  NOT NULL  # "packs", "liters", "tubes", "pcs"
+    flammable    Boolean NOT NULL  # drives Rule 1 guardrail
+    vasoconstrictor Boolean NOT NULL  # drives Rule 2 guardrail
 
-class AgentState(TypedDict):
-    messages: Annotated[Sequence[BaseMessage], operator.add]
-    thinking: Annotated[list[str], operator.add]
-    guardrail_flags: dict
-    thread_id: str
-    user_id: str
+class AuditLogORM(Base):
+    id           Integer PK  autoincrement
+    timestamp    DateTime    UTC
+    action       String      "ADD" or "CONSUME"
+    item_id      String
+    item_name    String
+    quantity     Float
+    status       String      "SUCCESS" or "REJECTED"
+    reason       String?     populated on rejection
+    rule_violated String?    e.g. "safety_regulation.txt Rule 1"
 ```
 
-### Graph Topology
+### Pydantic domain models
 
-```
-                    ┌───────────────┐
-        ┌──────────│ entry_point    │
-        │          └───────┬───────┘
-        │                  ▼
-        │          ┌───────────────┐
-        │          │ input_guard   │
-        │          └───────┬───────┘
-        │                  │
-        │          ┌───────┴───────┐
-        │          │ conditional   │
-        │          │ should_block? │
-        │          └──┬─────────┬──┘
-        │    blocked  │         │  allowed
-        │             ▼         ▼
-        │  ┌──────────────┐  ┌─────────────────┐
-        │  │blocked_resp  │  │ agent_reasoning  │◄──┐
-        │  └──────┬───────┘  └────────┬────────┘   │
-        │         │                   │             │
-        │         │          ┌────────┴────────┐    │
-        │         │          │ conditional     │    │
-        │         │          │ needs_tool?     │    │
-        │         │          └──┬───────────┬──┘    │
-        │         │    yes      │           │  no   │
-        │         │             ▼           │       │
-        │         │   ┌─────────────────┐   │       │
-        │         │   │ tool_executor   │───┘       │
-        │         │   └─────────────────┘  (loops   │
-        │         │                        back)    │
-        │         │             ┌────────────────┐  │
-        │         │             │ output_guard   │  │
-        │         │             └───────┬────────┘  │
-        │         │                     │           │
-        │         ▼                     ▼           │
-        │       ┌─────────────────────────┐        │
-        └──────►│          END            │        │
-                └─────────────────────────┘
+```python
+class StockUpdateInput(BaseModel):
+    item_id:   str   = Field(pattern=r"^[A-Z][0-9]{3}$")  # e.g. A101, D500
+    quantity:  float = Field(gt=0)
+    operation: Literal["add", "consume"]
+
+class GuardrailResult(BaseModel):
+    allowed:       bool
+    reason:        Optional[str]    # human-readable rejection message
+    rule_violated: Optional[str]    # e.g. "safety_regulation.txt Rule 1"
+    current_total: Optional[float]  # stock/total before the operation
+    max_allowed:   Optional[float]  # the limit that would be exceeded
 ```
 
-### Recursion Limit
+---
 
-The graph is compiled with `recursion_limit=25` to prevent infinite loops between reasoning and tool execution.
+## Safety rules
+
+Defined in `safety_regulation.txt`, enforced in `app/guardrails/checks.py`.
+
+| Rule | Limit | Applies to | Check |
+|------|-------|-----------|-------|
+| Rule 1 | Total flammable liquids ≤ 10L per room | `item.flammable = True`, operation = add | `SELECT SUM(stock) WHERE flammable = TRUE` |
+| Rule 2 | Total vasoconstrictor anesthetics ≤ 20 packs | `item.vasoconstrictor = True`, operation = add | `SELECT SUM(stock) WHERE vasoconstrictor = TRUE` |
+| Rule 3 | Every attempt logged | All operations | `_write_audit()` always called, success or rejection |
+| implicit | Stock cannot go negative | operation = consume | `item.stock - quantity >= 0` |
+
+Rule 1 note: the regulation specifies per-room. The current schema has no room field — the global sum is equivalent for a single-room clinic. `clinic_room_id` is listed in Future Extensions.
 
 ---
 
-## Guardrails Strategy
+## vLLM / model configuration
 
-Safety is enforced at multiple layers, not as an afterthought.
+Model: `Qwen/Qwen3.5-9B` on A100-PCIE-40GB.
 
-### Layered Guardrail Model
-
-| Layer | Location | Checks | Implementation |
-|-------|----------|--------|----------------|
-| **Input Guardrail** | Before agent reasoning | Prompt injection detection, PII detection, off-topic/blocked topic filtering | NeMo Guardrails + custom regex classifiers |
-| **Tool Guardrail** | Conditional edge before tool execution | Tool allowlist per user role, rate limiting on tool calls | LangGraph conditional edges + role-based allowlist |
-| **Output Guardrail** | After agent reasoning, before response | Toxicity filtering, PII leakage prevention, hallucination check | LLM-as-judge or Guardrails AI validators |
-| **Token Limits** | LLM configuration | Prevents runaway cost | `max_tokens` on LLM + LangGraph `recursion_limit` |
-
-### Guardrail Configuration (NeMo)
-
-Guardrail policies are defined in YAML and loaded at startup. Topic blocklists, canonical forms, and dialog flows are version-controlled alongside application code.
-
----
-
-## Streaming Architecture
-
-Real-time visibility into agent reasoning is achieved through Server-Sent Events (SSE).
-
-### Why SSE over WebSocket
-
-- Simpler -- unidirectional from server to client is sufficient for chat streaming
-- LangGraph natively supports SSE via `astream_events`
-- No connection upgrade negotiation overhead
-- Automatic reconnection built into the browser `EventSource` API
-
-### Event Protocol
-
-The streaming endpoint emits JSON events over SSE with the following types:
-
-| Event Type | Payload | Description |
-|-----------|---------|-------------|
-| `thinking` | `{ content: string }` | Agent reasoning step (node entry, guardrail result, tool decision) |
-| `token` | `{ content: string }` | Single token from the LLM response stream |
-| `tool_call` | `{ name: string, args: object }` | Tool invocation details |
-| `tool_result` | `{ name: string, result: string }` | Tool execution result |
-| `error` | `{ message: string }` | Recoverable error during processing |
-| `done` | `{}` | Stream complete |
-
-### Streaming Implementation
-
-LangGraph's `astream_events(version="v2")` provides granular events for every node entry, LLM token, and tool call. These are mapped to the event types above and sent as SSE to the frontend.
-
-For models that support extended thinking (e.g., Anthropic Claude), the model's internal chain-of-thought is surfaced as `thinking` events, providing genuine reasoning visibility rather than just execution trace.
-
----
-
-## Authentication & Authorization
-
-### Identity
-
-- OAuth 2.0 / OIDC via Auth0, Clerk, or Keycloak
-- JWT tokens issued on login, attached as `Bearer` token to every API request
-- Frontend auth provider wraps the application and handles token refresh
-
-### API Authentication
-
-- FastAPI `Depends()` middleware validates JWT signature, expiry, and audience on every request
-- `thread_id` is scoped to the authenticated user -- cross-user thread access is rejected with 403
-
-### Role-Based Access
-
-- User roles determine which agent tools are available (e.g., admin users can access data export tools, regular users cannot)
-- Rate limits are enforced per-user via Redis-backed counters
-
----
-
-## Logging
-
-### Principles
-
-- **Structured JSON logs** via `structlog` -- every log entry is machine-parseable
-- **Context propagation** -- `request_id`, `user_id`, and `thread_id` are bound to every log entry via `contextvars`
-- **PII redaction** -- raw user messages and LLM responses are NEVER logged in production; only redacted summaries or metadata
-
-### Log Levels by Layer
-
-| Layer | Log Level | What's Logged |
-|-------|-----------|--------------|
-| Request middleware | INFO | Method, path, status, latency |
-| Agent node entry/exit | INFO | Node name, duration, tokens used |
-| Guardrail decisions | INFO/WARN | Check type, pass/fail, reason (redacted) |
-| LLM calls | INFO | Model, prompt/completion tokens, latency, cost estimate |
-| Tool execution | INFO | Tool name, duration, success/failure |
-| Errors | ERROR | Stack trace, node where failure occurred, partial state |
-
-### Log Aggregation
-
-Logs are shipped to a centralized aggregator (ELK, CloudWatch, or Grafana Loki) for search, alerting, and dashboarding.
-
----
-
-## Observability & Monitoring
-
-### Three Pillars
-
-```
-Metrics (Prometheus)     Traces (OpenTelemetry)     LLM Observability (LangSmith/LangFuse)
-        │                        │                              │
-        └────────────────────────┴──────────────────────────────┘
-                                 │
-                            Grafana Dashboards
+```bash
+vllm serve Qwen/Qwen3.5-9B \
+  --enable-auto-tool-choice \
+  --tool-call-parser qwen3_coder \
+  --reasoning-parser qwen3 \
+  --port 9000
 ```
 
-### Key Metrics (Prometheus)
+Critical setting in `app/agent/graph.py`:
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `agent_request_total` | Counter | Total requests by status |
-| `agent_request_duration_seconds` | Histogram | End-to-end request latency |
-| `llm_tokens_total{type=prompt\|completion}` | Counter | Token usage for cost tracking |
-| `guardrail_blocked_total{guard=input\|output}` | Counter | Blocked requests by guardrail type |
-| `agent_error_total{node=...}` | Counter | Errors by graph node |
-| `tool_call_duration_seconds{tool=...}` | Histogram | Per-tool execution latency |
-| `active_streams` | Gauge | Currently open SSE connections |
-
-### Distributed Tracing (OpenTelemetry)
-
-Each request generates a trace with spans for:
-- HTTP request handling
-- Each LangGraph node execution
-- Each LLM API call
-- Each tool invocation
-
-### LLM-Specific Observability (LangSmith / LangFuse)
-
-- Prompt version tracking
-- Per-conversation token costs
-- Conversation replay and debugging
-- Quality scoring and A/B prompt testing
-- Enabled via environment variables (`LANGCHAIN_TRACING_V2=true`)
-
----
-
-## Error Handling & Resilience
-
-### Agent-Specific Failure Modes
-
-| Failure | Mitigation |
-|---------|-----------|
-| **LLM timeout** (>30s reasoning) | `asyncio.wait_for` with 60s timeout per node; graceful fallback message |
-| **LLM rate limit** (429) | Exponential backoff retry (3 attempts, 1-10s wait) via `tenacity` |
-| **Tool failure** (external API down) | Per-tool timeout; error captured in state, agent can reason about failure |
-| **Infinite loop** (agent cycles between reasoning and tools) | `recursion_limit=25` on graph compilation |
-| **Context overflow** (conversation exceeds context window) | Token counting per turn; automatic conversation summarization or truncation |
-| **Malformed LLM output** (unparseable tool call) | Output parsing with fallback; retry with simplified prompt |
-
-### Global Error Handler
-
-A FastAPI exception handler catches unhandled errors, logs them with full context, and returns a safe generic error message to the client. The SSE stream emits an `error` event so the frontend can display a user-friendly message.
-
----
-
-## Data Privacy & Compliance
-
-Especially relevant given the dental/medical domain.
-
-| Concern | Approach |
-|---------|---------|
-| **PII in prompts** | Input guardrail detects and redacts PII (names, SSNs, health records) before sending to LLM |
-| **Data residency** | LLM API calls routed to region-specific endpoints (e.g., Azure OpenAI in-region) if HIPAA/GDPR applies |
-| **Conversation storage** | Encrypted at rest (AES-256); retention policy with automatic purge; right-to-deletion support |
-| **Audit trail** | Immutable log of who asked what, when, and what the agent responded (stored separately from application logs) |
-| **User consent** | Frontend displays a consent banner acknowledging AI-generated content is not medical advice |
-
----
-
-## Configuration Management
-
-All configuration is externalized via environment variables and validated at startup using `pydantic-settings`.
-
-### Key Configuration Groups
-
-| Group | Variables | Defaults |
-|-------|----------|----------|
-| **LLM** | `AGENT_LLM_PROVIDER`, `AGENT_LLM_MODEL`, `AGENT_LLM_TEMPERATURE`, `AGENT_LLM_MAX_TOKENS`, `AGENT_LLM_TIMEOUT_SECONDS` | `openai`, `gpt-4o`, `0.1`, `4096`, `60` |
-| **Guardrails** | `AGENT_GUARDRAIL_ENABLED`, `AGENT_GUARDRAIL_INPUT_CHECKS`, `AGENT_GUARDRAIL_OUTPUT_CHECKS` | `true`, `[pii, injection, topic]`, `[toxicity, pii_leakage]` |
-| **Auth** | `AGENT_JWT_SECRET`, `AGENT_JWT_ALGORITHM`, `AGENT_JWT_AUDIENCE` | -, `RS256`, `dental-agent` |
-| **Limits** | `AGENT_MAX_CONVERSATION_TURNS`, `AGENT_MAX_TOKENS_PER_CONVERSATION`, `AGENT_RATE_LIMIT_PER_USER_PER_MINUTE` | `50`, `100000`, `20` |
-| **Observability** | `AGENT_LANGSMITH_ENABLED`, `AGENT_LOG_LEVEL` | `true`, `INFO` |
-
----
-
-## Frontend Architecture
-
-### UI Layout
-
-Split-panel design with chat on the left and live agent reasoning on the right.
-
-```
-┌──────────────────────────────────────────────┐
-│                  Header                       │
-├────────────────────────┬─────────────────────┤
-│                        │   Thinking Panel     │
-│    Chat Panel          │   ┌───────────────┐  │
-│                        │   │ > Input check  │  │
-│   User: Hi there       │   │ > Reasoning... │  │
-│   Bot:  Hello! ...     │   │ > Tool: search │  │
-│                        │   │ > Output check │  │
-│   [  Type a message  ] │   └───────────────┘  │
-└────────────────────────┴─────────────────────┘
+```python
+ChatOpenAI(
+    base_url=VLLM_BASE_URL,   # from .env: VLLM_BASE_URL
+    model=MODEL_NAME,          # from .env: VLLM_MODEL
+    temperature=0,             # deterministic tool selection
+)
 ```
 
-### Streaming Consumption
+Qwen3.5 uses an XML tool call format (`<tool_call><function=name><parameter=key>value</parameter></function></tool_call>`) that requires `--tool-call-parser qwen3_coder`. The `hermes` parser (correct for Qwen2.5) does not understand this format and passes the raw XML through as plain text — tool calls appear in the chat output instead of executing.
 
-The frontend reads the SSE stream and routes events to two separate render targets:
-- `thinking` events → Thinking Panel (appended with animation)
-- `token` events → Chat Panel (progressive text rendering)
-- `done` event → Marks streaming complete, re-enables input
-
-### Auth Integration
-
-The auth provider (Clerk/Auth0) wraps the app layout. JWT tokens are automatically attached to API requests. Unauthenticated users are redirected to login.
+`--reasoning-parser qwen3` separates the `<think>` tokens into the `reasoning` field. LangChain reads `content`, so the thinking chain never reaches the agent loop. No client-side `enable_thinking` flag is needed.
 
 ---
 
-## Key Design Decisions
+## Test strategy
 
-| Decision | Choice | Rationale |
-|----------|--------|-----------|
-| **Streaming transport** | SSE over WebSocket | Simpler, LangGraph native support, sufficient for unidirectional chat streaming |
-| **Guardrails library** | NeMo Guardrails + custom | NeMo for topic control and dialog management; custom for PII detection and prompt injection |
-| **Thinking visibility** | `astream_events` (v2) | Most granular: exposes node transitions, individual LLM tokens, and tool calls |
-| **State persistence** | PostgreSQL (production), MemorySaver (dev) | PostgreSQL for durability and multi-instance support; in-memory for fast local development |
-| **LLM provider** | OpenAI or Anthropic (configurable) | Both supported via LangChain abstractions; Anthropic preferred when extended thinking visibility is desired |
-| **Frontend framework** | Next.js 14+ App Router | SSR for initial load, React Server Components for auth, excellent streaming support |
-| **API versioning** | URL prefix (`/v1/chat/stream`) | Simple, explicit, easy to deprecate |
+All 31 tests run without a live LLM or network connection. The in-memory SQLite fixture in `conftest.py` seeds from `inventory.json` and gives each test a clean slate.
 
----
+```
+tests/test_guardrails.py  (16 tests)
+  ├── Rule 1: flammable limit rejected, accepted at boundary, bypassed for non-flammable
+  ├── Rule 2: vasoconstrictor limit rejected, accepted at boundary
+  ├── Negative stock: consume beyond stock rejected, exact consumption accepted
+  ├── Non-existent item: returns "not found" rejection
+  ├── Unknown operation: run_all_guardrails defensive fallback
+  └── Audit log: SUCCESS entry written, REJECTED entry written, stock unchanged after reject
 
-## Health Checks
+tests/test_pydantic.py  (7 tests)
+  ├── quantity = 0 → ValidationError
+  ├── quantity < 0 → ValidationError
+  ├── item_id = "INVALID" → ValidationError (pattern mismatch)
+  ├── item_id = "a101" → ValidationError (lowercase)
+  ├── operation = "order" → ValidationError (not Literal["add","consume"])
+  └── valid add / valid consume → pass
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /health` | Liveness probe -- returns 200 if the process is running |
-| `GET /ready` | Readiness probe -- returns 200 if LLM connection is established, DB is reachable, and guardrails are loaded |
-
----
-
-## Dependencies
-
-### Backend (`pyproject.toml`)
-
-```toml
-[project]
-dependencies = [
-    "langgraph",
-    "langchain",
-    "langchain-openai",
-    "langchain-anthropic",
-    "fastapi",
-    "uvicorn",
-    "nemoguardrails",
-    "pydantic>=2.0",
-    "pydantic-settings",
-    "structlog",
-    "prometheus-client",
-    "opentelemetry-api",
-    "opentelemetry-sdk",
-    "opentelemetry-instrumentation-fastapi",
-    "redis",
-    "psycopg[binary]",
-    "tenacity",
-    "python-jose[cryptography]",
-]
+tests/test_repository.py  (8 tests)
+  ├── get_all_items: returns all 7 seeded items
+  ├── get_item: found / not found
+  ├── search_items: exact match, multiple matches, no match, case-insensitive
+  └── search_items: category match ("anesthetic" → all 3 Anesthetics)
 ```
 
-### Frontend (`package.json`)
+Coverage intentionally excludes RAG (requires 90MB model download) and tool layer (requires LLM). Those are integration-tested manually against the live vLLM server.
 
-```json
-{
-  "dependencies": {
-    "next": "^15",
-    "react": "^19",
-    "react-dom": "^19",
-    "tailwindcss": "^4",
-    "ai": "^4",
-    "@clerk/nextjs": "^6"
-  }
-}
-```
+---
+
+## Key design decisions
+
+**Deterministic guardrails over prompt-based**
+Prompt instructions can be overridden by injection. A Python function that runs before `inv_session.commit()` cannot be — it is not in the prompt. The guardrail logic is a SQL aggregate query and a numeric comparison.
+
+**Two-session audit pattern over single session**
+A single session would rollback the audit entry alongside the inventory transaction on guardrail failure. A separate `audit_session` that always commits independently guarantees Rule 3 regardless of inventory outcome.
+
+**SQLite over a plain text audit log**
+Rule 3 requires the log to be durable, queryable, and corruption-resistant. SQLite satisfies all three with no deployment overhead. Switching to PostgreSQL is a `make_engine()` one-liner (plus removing `connect_args`).
+
+**Semantic chunking over fixed-token chunking**
+Each item in `med_info.txt` is a clinical unit. Splitting at token boundaries can separate a contraindication from its drug name. Chunking by numbered section preserves complete clinical context in each vector.
+
+**Category search in `search_items()`**
+Product names like "Lidocaine", "Septanest", and "Ubistesin" don't contain the word "anesthetic". Extending substring search to also match `item.category` lets staff use generic terms for disambiguation without touching the tool interface.
