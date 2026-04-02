@@ -13,7 +13,6 @@ import pytest
 
 from app.rag.loader import load_med_documents
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
 
@@ -39,7 +38,8 @@ SYNTHETIC_MED_INFO = textwrap.dedent("""\
     Storage: Must be stored in a dark place at room temperature (below 25°C).
     Technical Note: Highly sensitive to ambient light. Exposure to operatory lights will
     trigger premature polymerization (hardening), rendering the material unusable.
-    Contraindications: Do not use over zinc oxide eugenol bases — eugenol inhibits the polymerization of resin composites.
+    Contraindications: Do not use over zinc oxide eugenol bases — eugenol inhibits the
+    polymerization of resin composites.
 """)
 
 
@@ -123,8 +123,7 @@ def test_file_with_no_numbered_sections_returns_one_unsplit_document(tmp_path):
     """
     p = tmp_path / "prose.txt"
     p.write_text(
-        "This is just prose. No numbered headings here.\n"
-        "Second line of prose with no item number.\n",
+        "This is just prose. No numbered headings here.\nSecond line of prose with no item number.\n",
         encoding="utf-8",
     )
     docs = load_med_documents(p)
