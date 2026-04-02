@@ -17,11 +17,17 @@ anyio==4.13.0
     #   openai
 attrs==26.1.0
     # via aiohttp
+boolean-py==5.0
+    # via license-expression
+cachecontrol==0.14.4
+    # via pip-audit
 certifi==2026.2.25
     # via
     #   httpcore
     #   httpx
     #   requests
+cfgv==3.5.0
+    # via pre-commit
 charset-normalizer==3.4.7
     # via requests
 click==8.3.1
@@ -37,16 +43,25 @@ cuda-pathfinder==1.5.0 ; sys_platform == 'linux'
     # via cuda-bindings
 cuda-toolkit==13.0.2 ; sys_platform == 'linux'
     # via torch
+cyclonedx-python-lib==11.7.0
+    # via pip-audit
 dataclasses-json==0.6.7
     # via langchain-community
+defusedxml==0.7.1
+    # via py-serializable
+distlib==0.4.0
+    # via virtualenv
 distro==1.9.0
     # via openai
 faiss-cpu==1.13.2
-    # via ai-dentail-agent
+    # via dental-inventory-agent
 filelock==3.25.2
     # via
+    #   cachecontrol
     #   huggingface-hub
+    #   python-discovery
     #   torch
+    #   virtualenv
 frozenlist==1.8.0
     # via
     #   aiohttp
@@ -77,6 +92,8 @@ huggingface-hub==1.8.0
     #   sentence-transformers
     #   tokenizers
     #   transformers
+identify==2.6.18
+    # via pre-commit
 idna==3.11
     # via
     #   anyio
@@ -96,11 +113,11 @@ jsonpatch==1.33
 jsonpointer==3.1.1
     # via jsonpatch
 langchain==1.2.14
-    # via ai-dentail-agent
+    # via dental-inventory-agent
 langchain-classic==1.0.3
     # via langchain-community
 langchain-community==0.4.1
-    # via ai-dentail-agent
+    # via dental-inventory-agent
 langchain-core==1.2.24
     # via
     #   langchain
@@ -113,14 +130,14 @@ langchain-core==1.2.24
     #   langgraph-checkpoint
     #   langgraph-prebuilt
 langchain-huggingface==1.2.1
-    # via ai-dentail-agent
+    # via dental-inventory-agent
 langchain-openai==1.1.12
-    # via ai-dentail-agent
+    # via dental-inventory-agent
 langchain-text-splitters==1.1.1
     # via langchain-classic
 langgraph==1.1.4
     # via
-    #   ai-dentail-agent
+    #   dental-inventory-agent
     #   langchain
 langgraph-checkpoint==4.0.1
     # via
@@ -135,6 +152,8 @@ langsmith==0.7.24
     #   langchain-classic
     #   langchain-community
     #   langchain-core
+license-expression==30.4.4
+    # via cyclonedx-python-lib
 markdown-it-py==4.0.0
     # via rich
 markupsafe==3.0.3
@@ -145,6 +164,8 @@ mdurl==0.1.2
     # via markdown-it-py
 mpmath==1.3.0
     # via sympy
+msgpack==1.1.2
+    # via cachecontrol
 multidict==6.7.1
     # via
     #   aiohttp
@@ -153,6 +174,8 @@ mypy-extensions==1.1.0
     # via typing-inspect
 networkx==3.6.1
     # via torch
+nodeenv==1.10.0
+    # via pre-commit
 numpy==2.4.4
     # via
     #   faiss-cpu
@@ -208,6 +231,8 @@ orjson==3.11.8
     #   langsmith
 ormsgpack==1.12.2
     # via langgraph-checkpoint
+packageurl-python==0.17.6
+    # via cyclonedx-python-lib
 packaging==26.0
     # via
     #   faiss-cpu
@@ -215,17 +240,34 @@ packaging==26.0
     #   langchain-core
     #   langsmith
     #   marshmallow
+    #   pip-audit
+    #   pip-requirements-parser
     #   pytest
     #   transformers
+pip==26.0.1
+    # via pip-api
+pip-api==0.0.34
+    # via pip-audit
+pip-audit==2.10.0
+pip-requirements-parser==32.0.1
+    # via pip-audit
+platformdirs==4.9.4
+    # via
+    #   pip-audit
+    #   python-discovery
+    #   virtualenv
 pluggy==1.6.0
     # via pytest
+pre-commit==4.5.1
 propcache==0.4.1
     # via
     #   aiohttp
     #   yarl
+py-serializable==2.1.0
+    # via cyclonedx-python-lib
 pydantic==2.12.5
     # via
-    #   ai-dentail-agent
+    #   dental-inventory-agent
     #   langchain
     #   langchain-classic
     #   langchain-core
@@ -241,11 +283,15 @@ pygments==2.20.0
     # via
     #   pytest
     #   rich
+pyparsing==3.3.2
+    # via pip-requirements-parser
 pytest==9.0.2
-    # via ai-dentail-agent
+    # via dental-inventory-agent
+python-discovery==1.2.1
+    # via virtualenv
 python-dotenv==1.2.2
     # via
-    #   ai-dentail-agent
+    #   dental-inventory-agent
     #   pydantic-settings
 pyyaml==6.0.3
     # via
@@ -253,6 +299,7 @@ pyyaml==6.0.3
     #   langchain-classic
     #   langchain-community
     #   langchain-core
+    #   pre-commit
     #   transformers
 regex==2026.3.32
     # via
@@ -260,15 +307,20 @@ regex==2026.3.32
     #   transformers
 requests==2.33.1
     # via
+    #   cachecontrol
     #   langchain-classic
     #   langchain-community
     #   langsmith
+    #   pip-audit
     #   requests-toolbelt
     #   tiktoken
 requests-toolbelt==1.0.0
     # via langsmith
 rich==14.3.3
-    # via typer
+    # via
+    #   pip-audit
+    #   typer
+ruff==0.15.8
 safetensors==0.7.0
     # via transformers
 scikit-learn==1.8.0
@@ -278,16 +330,18 @@ scipy==1.17.1
     #   scikit-learn
     #   sentence-transformers
 sentence-transformers==5.3.0
-    # via ai-dentail-agent
+    # via dental-inventory-agent
 setuptools==81.0.0
     # via torch
 shellingham==1.5.4
     # via typer
 sniffio==1.3.1
     # via openai
+sortedcontainers==2.4.0
+    # via cyclonedx-python-lib
 sqlalchemy==2.0.48
     # via
-    #   ai-dentail-agent
+    #   dental-inventory-agent
     #   langchain-classic
     #   langchain-community
 sympy==1.14.0
@@ -304,6 +358,10 @@ tokenizers==0.22.2
     # via
     #   langchain-huggingface
     #   transformers
+tomli==2.4.1
+    # via pip-audit
+tomli-w==1.2.0
+    # via pip-audit
 torch==2.11.0
     # via sentence-transformers
 tqdm==4.67.3
@@ -324,6 +382,7 @@ typing-extensions==4.15.0
     # via
     #   aiosignal
     #   anyio
+    #   cyclonedx-python-lib
     #   huggingface-hub
     #   langchain-core
     #   openai
@@ -346,6 +405,8 @@ uuid-utils==0.14.1
     # via
     #   langchain-core
     #   langsmith
+virtualenv==21.2.0
+    # via pre-commit
 xxhash==3.6.0
     # via
     #   langgraph

@@ -1,5 +1,5 @@
 [project]
-name = "ai-dentail-agent"
+name = "dental-inventory-agent"
 version = "0.1.0"
 description = "LangGraph dental inventory agent with RAG knowledge base and deterministic safety guardrails"
 requires-python = ">=3.11"
