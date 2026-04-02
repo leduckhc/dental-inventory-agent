@@ -9,6 +9,7 @@ This guarantees Rule 3 (every attempt logged) even when Rule 1 or 2 rejects the 
 
 from datetime import UTC, datetime
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.schema import AuditLogORM, InventoryItemORM
@@ -34,9 +35,15 @@ def search_items(session: Session, query: str) -> list[InventoryItem]:
     Category prefix matching catches generic terms like 'anesthetic' (category='A')
     or 'disinfectant' (category='D') that won't appear in specific product names.
     """
-    q = query.lower()
-    rows = session.query(InventoryItemORM).all()
-    return [_orm_to_domain(r) for r in rows if q in r.name.lower() or q in (r.category or "").lower()]
+    q = f"%{query.lower()}%"
+    rows = (
+        session.query(InventoryItemORM)
+        .filter(
+            func.lower(InventoryItemORM.name).like(q) | func.lower(func.coalesce(InventoryItemORM.category, "")).like(q)
+        )
+        .all()
+    )
+    return [_orm_to_domain(r) for r in rows]
 
 
 # ── Write helpers ────────────────────────────────────────────────────────────
