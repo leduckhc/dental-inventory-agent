@@ -1,6 +1,6 @@
 """FAISS vector index over med_info.txt documents.
 
-Built once at agent startup. Uses BAAI/bge-small-en-v1.5 for local, fast embeddings.
+Built once at agent startup. Uses BAAI/bge-base-en-v1.5 for local embeddings.
 No OpenAI API key required.
 """
 

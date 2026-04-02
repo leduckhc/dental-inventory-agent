@@ -37,7 +37,7 @@ cp .env.example .env
 ## What it does
 
 **Part 1 — Knowledge base (RAG)**  
-Answers questions about dental materials (contraindications, storage, safety) using `med_info.txt`. Built on FAISS + `BAAI/bge-small-en-v1.5` embeddings. Admits ignorance when similarity score is below threshold instead of hallucinating.
+Answers questions about dental materials (contraindications, storage, safety) using `med_info.txt`. Built on FAISS + `BAAI/bge-base-en-v1.5` embeddings. Admits ignorance when similarity score is below threshold instead of hallucinating.
 
 **Part 2 — Inventory management**  
 View stock, record consumption, order supplies. All mutations go through SQLAlchemy transactions with full audit logging.
@@ -88,8 +88,8 @@ The task requires that safety rules cannot be overridden by user input. Prompt-b
 **Why SQLite from day one?**  
 The audit log is a relational artifact — it needs to be queryable, durable, and survive restarts. A text file doesn't satisfy Rule 3 properly. SQLite adds no deployment complexity and the SQLAlchemy ORM makes migration to PostgreSQL a one-line change.
 
-**Why `BAAI/bge-small-en-v1.5`?**  
-Local, fast (384-dim), no API key, strong English retrieval. The knowledge base has 12 documents — FAISS with a small embedder is the right scope. There is no reason to call an external embedding API for a 12-document corpus.
+**Why `BAAI/bge-base-en-v1.5`?**  
+Local, no API key, strong English retrieval (768-dim). The knowledge base has 12 documents — FAISS with a local embedder is the right scope. There is no reason to call an external embedding API for a 12-document corpus.
 
 **Why chunk by numbered item instead of fixed tokens?**  
 Each item in `med_info.txt` is a clinical unit. Splitting mid-description would separate a contraindication from its context. Semantic chunking by item number preserves complete clinical context per vector.

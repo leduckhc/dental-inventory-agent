@@ -32,7 +32,7 @@ app/agent/graph.py  (LangGraph ReAct graph)
   │          │
   │          ├── query_knowledge(query)
   │          │     └── FAISS similarity search over med_info.txt
-  │          │         (bge-small-en-v1.5, cached via @lru_cache)
+  │          │         (bge-base-en-v1.5, cached via @lru_cache)
   │          │
   │          ├── get_inventory()
   │          │     └── repository.get_all_items(inv_session)
@@ -153,7 +153,7 @@ startup
         ├── load_med_documents()     parse med_info.txt by numbered section
         │   → 12 Documents, one per item (semantic chunking preserves clinical context)
         │
-        └── FAISS.from_documents(docs, HuggingFaceEmbeddings("BAAI/bge-small-en-v1.5"))
+        └── FAISS.from_documents(docs, HuggingFaceEmbeddings("BAAI/bge-base-en-v1.5"))
             normalize_embeddings=True, device=cpu
 
 query_knowledge(query) tool call
