@@ -16,6 +16,11 @@ def test_negative_quantity_rejected():
         StockUpdateInput(item_id="A101", quantity=-5.0, operation="consume")
 
 
+def test_string_quantity_rejected():
+    with pytest.raises(ValidationError):
+        StockUpdateInput(item_id="A101", quantity="5", operation="add")
+
+
 def test_invalid_item_id_format():
     """Item IDs must be one uppercase letter + 3 digits (e.g. A101, D500)."""
     with pytest.raises(ValidationError):

@@ -26,7 +26,7 @@ class StockUpdateInput(BaseModel):
         pattern=r"^[A-Z][0-9]{3}$",
         description="Inventory item ID, e.g. A101 or D500",
     )
-    quantity: float = Field(gt=0, description="Must be a positive number")
+    quantity: float = Field(gt=0, description="Must be a positive number", strict=True)
     operation: Literal["add", "consume"]
 
 
