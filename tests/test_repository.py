@@ -16,7 +16,7 @@ def test_get_item_found(db_sessions):
     item = get_item(inv, "A101")
     assert item is not None
     assert item.id == "A101"
-    assert item.stock == 15.0
+    assert item.stock == 15
     assert item.attributes.flammable is False
 
 

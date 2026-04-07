@@ -178,7 +178,7 @@ class InventoryItemORM(Base):
     id           String  PK        # e.g. "A101", "D500"
     name         String  NOT NULL
     category     String  NOT NULL  # "Anesthetics", "Disinfectants", ...
-    stock        Float   NOT NULL
+    stock        Integer NOT NULL
     unit         String  NOT NULL  # "packs", "liters", "tubes", "pcs"
     flammable    Boolean NOT NULL  # drives Rule 1 guardrail
     vasoconstrictor Boolean NOT NULL  # drives Rule 2 guardrail
@@ -189,7 +189,7 @@ class AuditLogORM(Base):
     action       String      "ADD" or "CONSUME"
     item_id      String
     item_name    String
-    quantity     Float
+    quantity     Integer
     status       String      "SUCCESS" or "REJECTED"
     reason       String?     populated on rejection
     rule_violated String?    e.g. "safety_regulation.txt Rule 1"
@@ -199,16 +199,16 @@ class AuditLogORM(Base):
 
 ```python
 class StockUpdateInput(BaseModel):
-    item_id:   str   = Field(pattern=r"^[A-Z][0-9]{3}$")  # e.g. A101, D500
-    quantity:  float = Field(gt=0)
+    item_id:   str = Field(pattern=r"^[A-Z][0-9]{3}$")  # e.g. A101, D500
+    quantity:  int = Field(gt=0, strict=True)
     operation: Literal["add", "consume"]
 
 class GuardrailResult(BaseModel):
     allowed:       bool
     reason:        Optional[str]    # human-readable rejection message
     rule_violated: Optional[str]    # e.g. "safety_regulation.txt Rule 1"
-    current_total: Optional[float]  # stock/total before the operation
-    max_allowed:   Optional[float]  # the limit that would be exceeded
+    current_total: int | None        # stock/total before the operation
+    max_allowed:   int | None        # the limit that would be exceeded
 ```
 
 ---

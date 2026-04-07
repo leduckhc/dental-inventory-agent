@@ -14,7 +14,7 @@ class InventoryItem(BaseModel):
     id: str
     name: str
     category: str
-    stock: float
+    stock: int
     unit: str
     attributes: ItemAttributes
 
@@ -26,7 +26,7 @@ class StockUpdateInput(BaseModel):
         pattern=r"^[A-Z][0-9]{3}$",
         description="Inventory item ID, e.g. A101 or D500",
     )
-    quantity: float = Field(gt=0, description="Must be a positive number", strict=True)
+    quantity: int = Field(gt=0, strict=True, description="Must be a positive integer")
     operation: Literal["add", "consume"]
 
 
@@ -34,5 +34,5 @@ class GuardrailResult(BaseModel):
     allowed: bool
     reason: str | None = None
     rule_violated: str | None = None
-    current_total: float | None = None  # relevant quantity before the operation
-    max_allowed: float | None = None  # the limit that would be exceeded
+    current_total: int | None = None  # relevant quantity before the operation
+    max_allowed: int | None = None  # the limit that would be exceeded

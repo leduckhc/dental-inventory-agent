@@ -53,7 +53,7 @@ def update_stock(
     inv_session: Session,
     audit_session: Session,
     item_id: str,
-    quantity: float,
+    quantity: int,
     operation: str,  # "add" or "consume"
 ) -> GuardrailResult:
     """Apply a stock mutation, enforcing all guardrails.
@@ -106,7 +106,7 @@ def _write_audit(
     audit_session: Session,
     item_id: str,
     item_name: str,
-    quantity: float,
+    quantity: int,
     operation: str,
     result: GuardrailResult,
 ) -> None:

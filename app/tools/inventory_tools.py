@@ -87,7 +87,7 @@ def get_inventory() -> str:
         if item.attributes.vasoconstrictor:
             flags.append("VASOCONSTRICTOR")
         flag_str = ", ".join(flags) if flags else "-"
-        lines.append(f"{item.id:<6} {item.name:<45} {item.stock:>8.1f} {item.unit:<8} {flag_str}")
+        lines.append(f"{item.id:<6} {item.name:<45} {item.stock:>8} {item.unit:<8} {flag_str}")
     return "\n".join(lines)
 
 
@@ -128,7 +128,7 @@ def search_inventory(query: str) -> str:
 
 
 @tool
-def update_stock(item_id: str, quantity: float) -> str:
+def update_stock(item_id: str, quantity: int) -> str:
     """Order or receive stock for an existing inventory item.
 
     This tool ADDS quantity to the current stock level.
@@ -148,14 +148,16 @@ def update_stock(item_id: str, quantity: float) -> str:
         return f"Invalid input: {e}"
 
     result = repo_update_stock(_inv_session, _audit_session, validated.item_id, validated.quantity, "add")
-
     if result.allowed:
-        return f"[SUCCESS] Added {quantity} to {item_id}. Stock updated."
-    return f"[REJECTED] Cannot order {quantity} of {item_id}.\nReason: {result.reason}\nRule: {result.rule_violated}"
+        return f"[SUCCESS] Added {validated.quantity} to {item_id}. Stock updated."
+    return (
+        f"[REJECTED] Cannot order {validated.quantity} of {item_id}.\n"
+        f"Reason: {result.reason}\nRule: {result.rule_violated}"
+    )
 
 
 @tool
-def consume_stock(item_id: str, quantity: float) -> str:
+def consume_stock(item_id: str, quantity: int) -> str:
     """Record consumption of an inventory item (e.g. after a procedure).
 
     This tool SUBTRACTS quantity from the current stock level.
@@ -174,10 +176,12 @@ def consume_stock(item_id: str, quantity: float) -> str:
         return f"Invalid input: {e}"
 
     result = repo_update_stock(_inv_session, _audit_session, validated.item_id, validated.quantity, "consume")
-
     if result.allowed:
-        return f"[SUCCESS] Consumed {quantity} of {item_id}. Stock updated."
-    return f"[REJECTED] Cannot consume {quantity} of {item_id}.\nReason: {result.reason}\nRule: {result.rule_violated}"
+        return f"[SUCCESS] Consumed {validated.quantity} of {item_id}. Stock updated."
+    return (
+        f"[REJECTED] Cannot consume {validated.quantity} of {item_id}.\n"
+        f"Reason: {result.reason}\nRule: {result.rule_violated}"
+    )
 
 
 ALL_TOOLS = [query_knowledge, get_inventory, search_inventory, update_stock, consume_stock]

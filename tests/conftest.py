@@ -36,7 +36,7 @@ def db_sessions():
                 id=raw["id"],
                 name=raw["name"],
                 category=raw["category"],
-                stock=float(raw["stock"]),
+                stock=int(raw["stock"]),
                 unit=raw["unit"],
                 flammable=bool(attrs.get("flammable", False)),
                 vasoconstrictor=bool(attrs.get("vasoconstrictor", False)),

@@ -30,7 +30,7 @@ def load_inventory(db_url: str = "sqlite:///dental.db", json_path: Path = INVENT
                 id=raw["id"],
                 name=raw["name"],
                 category=raw["category"],
-                stock=float(raw["stock"]),
+                stock=int(raw["stock"]),
                 unit=raw["unit"],
                 flammable=bool(attrs.get("flammable", False)),
                 vasoconstrictor=bool(attrs.get("vasoconstrictor", False)),

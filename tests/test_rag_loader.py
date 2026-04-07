@@ -22,24 +22,18 @@ SYNTHETIC_MED_INFO = textwrap.dedent("""\
     Onset of Action: Rapid, typically within 2-5 minutes.
     Duration: Provides pulpal anesthesia for approximately 60 minutes.
     Indications: Routine dental extractions, cavity preparations, and minor oral surgery.
-    Contraindications: Known hypersensitivity to amide-type anesthetics, severe heart block,
-    or acute heart failure. Use with caution in patients with liver disease.
+    Contraindications: Known hypersensitivity to amide-type anesthetics, severe heart block, or acute heart failure. Use with caution in patients with liver disease.
 
     2. ETHANOL 96% DENATURED (SYNTHETIC)
-    Description: High-concentration denatured alcohol used strictly for surface disinfection
-    and cleaning of non-critical dental instruments.
-    Safety Warning: Highly flammable liquid. Store in a cool, well-ventilated area away from
-    open flames or electrical sparks.
-    Usage: Not for internal use or application on mucous membranes. Contact with oral mucosa
-    can cause severe chemical burns.
+    Description: High-concentration denatured alcohol used strictly for surface disinfection and cleaning of non-critical dental instruments.
+    Safety Warning: Highly flammable liquid. Store in a cool, well-ventilated area away from open flames or electrical sparks.
+    Usage: Not for internal use or application on mucous membranes. Contact with oral mucosa can cause severe chemical burns.
 
     3. COMPOSITE FILLING (SYNTHETIC)
     Description: A light-cured, resin-based dental restorative material.
     Storage: Must be stored in a dark place at room temperature (below 25°C).
-    Technical Note: Highly sensitive to ambient light. Exposure to operatory lights will
-    trigger premature polymerization (hardening), rendering the material unusable.
-    Contraindications: Do not use over zinc oxide eugenol bases — eugenol inhibits the
-    polymerization of resin composites.
+    Technical Note: Highly sensitive to ambient light. Exposure to operatory lights will trigger premature polymerization (hardening), rendering the material unusable.
+    Contraindications: Do not use over zinc oxide eugenol bases — eugenol inhibits the polymerization of resin composites.
 """)
 
 
@@ -99,13 +93,14 @@ def test_page_content_does_not_bleed_into_next(synthetic_path):
 
 
 def test_contraindication_stays_in_its_item(synthetic_path):
-    """The eugenol contraindication belongs to item 3 (Composite).
+    """The zinc oxide eugenol contraindication belongs to item 3 (Composite).
     It must not appear in item 1 or item 2.
     """
     docs = load_med_documents(synthetic_path)
-    assert "eugenol inhibits the polymerization" in docs[2].page_content
-    assert "eugenol inhibits the polymerization" not in docs[0].page_content
-    assert "eugenol inhibits the polymerization" not in docs[1].page_content
+    needle = "zinc oxide eugenol bases"
+    assert needle in docs[2].page_content
+    assert needle not in docs[0].page_content
+    assert needle not in docs[1].page_content
 
 
 def test_empty_file_returns_no_documents(tmp_path):
@@ -165,4 +160,4 @@ def test_real_file_composite_zinc_oxide_contraindication_preserved():
     """
     docs = load_med_documents()
     composite = docs[3]
-    assert "eugenol inhibits the polymerization" in composite.page_content
+    assert "zinc oxide eugenol bases" in composite.page_content

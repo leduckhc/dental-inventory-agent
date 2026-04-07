@@ -16,11 +16,12 @@ from sqlalchemy.orm import Session
 from app.db.schema import InventoryItemORM
 from app.models.domain import GuardrailResult
 
-FLAMMABLE_LIMIT = 10.0  # liters — safety_regulation.txt Rule 1
+ZERO = 0
+FLAMMABLE_LIMIT = 10  # liters — safety_regulation.txt Rule 1
 VASOCONSTRICTOR_LIMIT = 20  # packs — safety_regulation.txt Rule 2
 
 
-def check_flammable_limit(session: Session, item: InventoryItemORM, quantity: float) -> GuardrailResult:
+def check_flammable_limit(session: Session, item: InventoryItemORM, quantity: int) -> GuardrailResult:
     """Only applies when item.flammable is True and operation is 'add'."""
     if not item.flammable:
         return GuardrailResult(allowed=True)
@@ -29,26 +30,27 @@ def check_flammable_limit(session: Session, item: InventoryItemORM, quantity: fl
         session.query(func.sum(InventoryItemORM.stock))
         .filter(InventoryItemORM.flammable == True)  # noqa: E712
         .scalar()
-    ) or 0.0
+    ) or ZERO
 
     projected = current + quantity
     if projected > FLAMMABLE_LIMIT:
+        max_allowed = max(ZERO, FLAMMABLE_LIMIT - current)
         return GuardrailResult(
             allowed=False,
             reason=(
-                f"Would bring total flammable stock to {projected:.1f}L, "
-                f"exceeding the {FLAMMABLE_LIMIT:.0f}L limit. "
-                f"Current total: {current:.1f}L. "
-                f"You can add at most {max(0.0, FLAMMABLE_LIMIT - current):.1f}L more."
+                f"Would bring total flammable stock to {projected}L, "
+                f"exceeding the {FLAMMABLE_LIMIT}L limit. "
+                f"Current total: {current}L. "
+                f"You can add at most {max_allowed}L more."
             ),
             rule_violated="safety_regulation.txt Rule 1",
             current_total=current,
-            max_allowed=max(0.0, FLAMMABLE_LIMIT - current),
+            max_allowed=max_allowed,
         )
     return GuardrailResult(allowed=True, current_total=current)
 
 
-def check_vasoconstrictor_limit(session: Session, item: InventoryItemORM, quantity: float) -> GuardrailResult:
+def check_vasoconstrictor_limit(session: Session, item: InventoryItemORM, quantity: int) -> GuardrailResult:
     """Only applies when item.vasoconstrictor is True and operation is 'add'."""
     if not item.vasoconstrictor:
         return GuardrailResult(allowed=True)
@@ -57,26 +59,27 @@ def check_vasoconstrictor_limit(session: Session, item: InventoryItemORM, quanti
         session.query(func.sum(InventoryItemORM.stock))
         .filter(InventoryItemORM.vasoconstrictor == True)  # noqa: E712
         .scalar()
-    ) or 0
+    ) or ZERO
 
     projected = current + quantity
     if projected > VASOCONSTRICTOR_LIMIT:
+        max_allowed = max(ZERO, VASOCONSTRICTOR_LIMIT - current)
         return GuardrailResult(
             allowed=False,
             reason=(
-                f"Would bring total vasoconstrictor stock to {projected:.0f} packs, "
+                f"Would bring total vasoconstrictor stock to {projected} packs, "
                 f"exceeding the {VASOCONSTRICTOR_LIMIT} pack limit. "
-                f"Current total: {current:.0f} packs. "
-                f"You can order at most {max(0, VASOCONSTRICTOR_LIMIT - int(current))} more."
+                f"Current total: {current} packs. "
+                f"You can order at most {max_allowed} more."
             ),
             rule_violated="safety_regulation.txt Rule 2",
-            current_total=float(current),
-            max_allowed=float(max(0, VASOCONSTRICTOR_LIMIT - int(current))),
+            current_total=current,
+            max_allowed=max_allowed,
         )
-    return GuardrailResult(allowed=True, current_total=float(current))
+    return GuardrailResult(allowed=True, current_total=current)
 
 
-def check_negative_stock(item: InventoryItemORM, quantity: float) -> GuardrailResult:
+def check_negative_stock(item: InventoryItemORM, quantity: int) -> GuardrailResult:
     """Prevents consuming more than what is in stock."""
     if item.stock - quantity < 0:
         return GuardrailResult(
@@ -95,7 +98,7 @@ def check_negative_stock(item: InventoryItemORM, quantity: float) -> GuardrailRe
 def run_all_guardrails(
     session: Session,
     item: InventoryItemORM,
-    quantity: float,
+    quantity: int,
     operation: str,
 ) -> GuardrailResult:
     """Run all applicable guardrails in priority order.

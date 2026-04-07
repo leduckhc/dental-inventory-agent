@@ -2,7 +2,7 @@
 
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, create_engine
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -17,7 +17,7 @@ class InventoryItemORM(Base):
     id = Column(String, primary_key=True)
     name = Column(String, nullable=False)
     category = Column(String, nullable=False)
-    stock = Column(Float, nullable=False)
+    stock = Column(Integer, nullable=False)
     unit = Column(String, nullable=False)
     flammable = Column(Boolean, default=False, nullable=False)
     vasoconstrictor = Column(Boolean, default=False, nullable=False)
@@ -34,7 +34,7 @@ class AuditLogORM(Base):
     action = Column(String, nullable=False)  # "ADD" or "CONSUME"
     item_id = Column(String, nullable=False)
     item_name = Column(String, nullable=False)
-    quantity = Column(Float, nullable=False)
+    quantity = Column(Integer, nullable=False)
     status = Column(String, nullable=False)  # "SUCCESS" or "REJECTED"
     reason = Column(String, nullable=True)
     rule_violated = Column(String, nullable=True)

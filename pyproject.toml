@@ -61,3 +61,4 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN"]  # no annotation requirements in tests
+"tests/test_rag_loader.py" = ["ANN", "E501"]  # synthetic med data mirrors real med_info.txt format
