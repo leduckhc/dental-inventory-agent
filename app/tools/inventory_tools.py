@@ -7,7 +7,7 @@ Tools:
   query_knowledge   — RAG over med_info.txt
   get_inventory     — read all stock levels
   search_inventory  — fuzzy name search (disambiguation)
-  update_stock      — order / receive stock (Rule 1 & 2 enforced)
+  update_stock      — order / receive stock (tag-based safety rules enforced)
   consume_stock     — record usage (negative-stock check enforced)
 """
 
@@ -78,16 +78,11 @@ def get_inventory() -> str:
     if not items:
         return "Inventory is empty."
 
-    lines = [f"{'ID':<6} {'Name':<45} {'Stock':>8} {'Unit':<8} {'Flags'}"]
+    lines = [f"{'ID':<6} {'Name':<45} {'Stock':>8} {'Unit':<8} {'Tags'}"]
     lines.append("-" * 80)
     for item in items:
-        flags = []
-        if item.attributes.flammable:
-            flags.append("FLAMMABLE")
-        if item.attributes.vasoconstrictor:
-            flags.append("VASOCONSTRICTOR")
-        flag_str = ", ".join(flags) if flags else "-"
-        lines.append(f"{item.id:<6} {item.name:<45} {item.stock:>8} {item.unit:<8} {flag_str}")
+        tag_str = ", ".join(t.upper() for t in item.tags) if item.tags else "-"
+        lines.append(f"{item.id:<6} {item.name:<45} {item.stock:>8} {item.unit:<8} {tag_str}")
     return "\n".join(lines)
 
 
@@ -132,8 +127,8 @@ def update_stock(item_id: str, quantity: int) -> str:
     """Order or receive stock for an existing inventory item.
 
     This tool ADDS quantity to the current stock level.
-    Safety guardrails (flammable ≤10L, vasoconstrictor ≤20 packs) are enforced
-    automatically — they cannot be overridden.
+    Safety guardrails are enforced automatically based on the item's tags
+    and configured safety rules — they cannot be overridden.
 
     Args:
         item_id: The inventory ID of the item (e.g. 'A101', 'D500').

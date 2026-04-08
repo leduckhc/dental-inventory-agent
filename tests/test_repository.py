@@ -17,13 +17,21 @@ def test_get_item_found(db_sessions):
     assert item is not None
     assert item.id == "A101"
     assert item.stock == 15
-    assert item.attributes.flammable is False
+    assert "flammable" not in item.tags
 
 
 def test_get_item_not_found(db_sessions):
     inv, _ = db_sessions
     item = get_item(inv, "Z999")
     assert item is None
+
+
+def test_get_item_tags(db_sessions):
+    """Flammable items should have the 'flammable' tag."""
+    inv, _ = db_sessions
+    item = get_item(inv, "D500")
+    assert item is not None
+    assert "flammable" in item.tags
 
 
 def test_search_items_exact_match(db_sessions):
