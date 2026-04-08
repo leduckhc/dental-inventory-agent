@@ -1,13 +1,13 @@
 """Guardrail tests — no LLM, no network, pure Python + SQLite.
 
 Inventory baseline (from inventory.json):
-  Lidocaine     A101  stock=15  packs  flammable=F  vasoconstrictor=F
-  Septanest     A102  stock=8   packs  flammable=F  vasoconstrictor=T
-  Ubistesin     A103  stock=10  packs  flammable=F  vasoconstrictor=T
-  Ethanol       D500  stock=2   liters flammable=T  vasoconstrictor=F
-  Isopropyl     D501  stock=3   liters flammable=T  vasoconstrictor=F
-  Composite     K303  stock=4   tubes  flammable=F  vasoconstrictor=F
-  Latex Gloves  C201  stock=200 pcs    flammable=F  vasoconstrictor=F
+  Lidocaine     A101  stock=15  packs  tags=[]
+  Septanest     A102  stock=8   packs  tags=[vasoconstrictor]
+  Ubistesin     A103  stock=10  packs  tags=[vasoconstrictor]
+  Ethanol       D500  stock=2   liters tags=[flammable]
+  Isopropyl     D501  stock=3   liters tags=[flammable]
+  Composite     K303  stock=4   tubes  tags=[]
+  Latex Gloves  C201  stock=200 pcs    tags=[]
 
 Derived totals:
   Total flammable:       2 + 3 = 5L
@@ -57,7 +57,7 @@ def test_flammable_isopropyl_exactly_at_limit_accepted(db_sessions):
 
 
 def test_flammable_non_flammable_item_bypasses_check(db_sessions):
-    """Ordering Lidocaine (non-flammable) never triggers Rule 1."""
+    """Ordering Lidocaine (no flammable tag) never triggers Rule 1."""
     inv, audit = db_sessions
     result = update_stock(inv, audit, "A101", 1000, "add")
     assert result.allowed
@@ -165,7 +165,6 @@ def test_audit_rejection_does_not_corrupt_inventory(db_sessions):
     inv, audit = db_sessions
     # Ethanol starts at 2L; trying to add 100L should be rejected
     update_stock(inv, audit, "D500", 100, "add")
-    from app.db.schema import InventoryItemORM
 
     item = inv.get(InventoryItemORM, "D500")
     assert item.stock == 2  # unchanged

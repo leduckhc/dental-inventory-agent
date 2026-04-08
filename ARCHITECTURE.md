@@ -41,14 +41,14 @@ app/agent/graph.py  (LangGraph ReAct graph)
   │          │     └── repository.search_items(inv_session, query)
   │          │         substring match on name OR category
   │          │
-  │          ├── update_stock(item_id, quantity)   ┐
-  │          │     └── StockUpdateInput (Pydantic)  │ validated first
+  │          ├── update_stock(item_id, quantity)     ┐
+  │          │     └── StockUpdateInput (Pydantic)   │ validated first
   │          │         └── repository.update_stock() │
   │          │               ├── guardrails → reject │
   │          │               └── inv_session.commit()│
   │          │                   audit_session.commit│
   │          │                                       │
-  │          └── consume_stock(item_id, quantity)   ┘
+  │          └── consume_stock(item_id, quantity)    ┘
   │
   └── back to agent_node
 ```
@@ -65,28 +65,35 @@ app/
 ├── tools/
 │   └── inventory_tools.py      5 @tool functions; Pydantic input validation
 ├── guardrails/
-│   └── checks.py               Pure Python safety rules (not tools)
+│   └── checks.py               Generic tag-based safety rules (not tools)
 ├── db/
-│   ├── schema.py               SQLAlchemy ORM: InventoryItemORM, AuditLogORM
-│   ├── migrate.py              inventory.json → SQLite (upsert, re-runnable)
+│   ├── schema.py               SQLAlchemy ORM: InventoryItemORM, SafetyTagORM,
+│   │                            ItemTagORM, SafetyRuleORM, AuditLogORM
+│   ├── migrate.py              inventory.json + safety_rules.json → SQLite (upsert)
 │   └── repository.py           DB reads/writes; two-session audit pattern
 ├── rag/
 │   ├── loader.py               med_info.txt → 12 Documents (one per item)
 │   └── index.py                FAISS index + query_knowledge_base()
 └── models/
     └── domain.py               Pydantic: InventoryItem, StockUpdateInput, GuardrailResult
+case/
+├── inventory.json              7-item product catalog (seed data)
+├── safety_rules.json           Tag-based safety limits (data-driven guardrails)
+├── med_info.txt                12 medical reference sections (RAG knowledge base)
+└── safety_regulation.txt       Safety rules: Rule 1, Rule 2, Rule 3
 tests/
 ├── conftest.py                 In-memory SQLite fixture, seeded from inventory.json
+│                                + safety_rules.json
 ├── test_guardrails.py          Guardrail correctness + audit log + DB state
 ├── test_pydantic.py            StockUpdateInput validation edge cases
-└── test_repository.py          Read helper unit tests (get_item, search, category)
+└── test_repository.py          Read helper unit tests (get_item, search, tags)
 ```
 
 ---
 
 ## Guardrail flow
 
-Safety rules run synchronously in Python before any DB write. The LLM has no path to bypass them — they are not tools and are not in the prompt.
+Safety rules run synchronously in Python before any DB write. The LLM has no path to bypass them — they are not tools and are not in the prompt. Rules are data-driven: stored in the `safety_rules` table, keyed by tag.
 
 ```
 update_stock tool called
@@ -98,16 +105,19 @@ update_stock tool called
         ▼
   repository.update_stock(inv_session, audit_session, item_id, qty, op)
         │
-        ├── item not found? ──────────────────────────────────────────┐
+        ├── item not found? ───────────────────────────────────────────┐
         │                                                              │
         ▼                                                              │
   run_all_guardrails(inv_session, item, qty, op)                       │
         │                                                              │
-        │  consume → check_negative_stock()                           │
-        │  add     → check_flammable_limit()                          │
-        │            → check_vasoconstrictor_limit()                  │
+        │  consume → check_negative_stock()                            │
+        │  add     → check_tag_limits()                                │
+        │             for each tag on item:                            │
+        │               look up safety_rules for that tag              │
+        │               SUM(stock) of all items with same tag          │
+        │               reject if projected > limit                    │
         │                                                              │
-        ├── REJECTED ────────────────────────────────────────────────►│
+        ├── REJECTED ─────────────────────────────────────────────────►│
         │              [inv_session untouched]                         │
         │                                                              │
         ▼                                                              │
@@ -180,8 +190,22 @@ class InventoryItemORM(Base):
     category     String  NOT NULL  # "Anesthetics", "Disinfectants", ...
     stock        Integer NOT NULL
     unit         String  NOT NULL  # "packs", "liters", "tubes", "pcs"
-    flammable    Boolean NOT NULL  # drives Rule 1 guardrail
-    vasoconstrictor Boolean NOT NULL  # drives Rule 2 guardrail
+    item_tags    relationship → ItemTagORM (lazy="joined")
+
+class SafetyTagORM(Base):
+    id           Integer PK  autoincrement
+    name         String  UNIQUE NOT NULL  # "flammable", "vasoconstrictor", ...
+
+class ItemTagORM(Base):              # many-to-many: items ↔ tags
+    item_id      String  FK → inventory.id   ┐
+    tag_id       Integer FK → safety_tags.id  ┘ composite PK
+
+class SafetyRuleORM(Base):           # one rule per tag
+    id           Integer PK  autoincrement
+    tag_id       Integer FK → safety_tags.id  UNIQUE
+    limit_value  Integer NOT NULL     # e.g. 10
+    limit_unit   String  NOT NULL     # e.g. "L", "packs"
+    rule_reference String NOT NULL    # e.g. "safety_regulation.txt Rule 1"
 
 class AuditLogORM(Base):
     id           Integer PK  autoincrement
@@ -198,6 +222,14 @@ class AuditLogORM(Base):
 ### Pydantic domain models
 
 ```python
+class InventoryItem(BaseModel):
+    id:       str
+    name:     str
+    category: str
+    stock:    int
+    unit:     str
+    tags:     list[str] = []   # e.g. ["flammable"], ["vasoconstrictor"]
+
 class StockUpdateInput(BaseModel):
     item_id:   str = Field(pattern=r"^[A-Z][0-9]{3}$")  # e.g. A101, D500
     quantity:  int = Field(gt=0, strict=True)
@@ -215,14 +247,20 @@ class GuardrailResult(BaseModel):
 
 ## Safety rules
 
-Defined in `safety_regulation.txt`, enforced in `app/guardrails/checks.py`.
+Defined in `safety_regulation.txt`, configured as data in `case/safety_rules.json`, enforced by the generic `check_tag_limits()` in `app/guardrails/checks.py`.
 
-| Rule | Limit | Applies to | Check |
-|------|-------|-----------|-------|
-| Rule 1 | Total flammable liquids ≤ 10L per room | `item.flammable = True`, operation = add | `SELECT SUM(stock) WHERE flammable = TRUE` |
-| Rule 2 | Total vasoconstrictor anesthetics ≤ 20 packs | `item.vasoconstrictor = True`, operation = add | `SELECT SUM(stock) WHERE vasoconstrictor = TRUE` |
-| Rule 3 | Every attempt logged | All operations | `_write_audit()` always called, success or rejection |
-| implicit | Stock cannot go negative | operation = consume | `item.stock - quantity >= 0` |
+| Rule | Tag | Limit | Check |
+|------|-----|-------|-------|
+| Rule 1 | `flammable` | ≤ 10 L | `SUM(stock) JOIN item_tags WHERE tag = 'flammable'` |
+| Rule 2 | `vasoconstrictor` | ≤ 20 packs | `SUM(stock) JOIN item_tags WHERE tag = 'vasoconstrictor'` |
+| Rule 3 | — | Every attempt logged | `_write_audit()` always called, success or rejection |
+| implicit | — | Stock ≥ 0 | `item.stock - quantity >= 0` |
+
+**Adding a new safety rule** requires only two data changes:
+1. Insert a row into `safety_tags` and tag the relevant items in `item_tags`
+2. Insert a row into `safety_rules` with the tag, limit, unit, and rule reference
+
+No code changes needed — `check_tag_limits()` automatically picks up new rules.
 
 Rule 1 note: the regulation specifies per-room. The current schema has no room field — the global sum is equivalent for a single-room clinic. `clinic_room_id` is listed in Future Extensions.
 
@@ -258,18 +296,18 @@ Qwen3.5 uses an XML tool call format (`<tool_call><function=name><parameter=key>
 
 ## Test strategy
 
-All 31 tests run without a live LLM or network connection. The in-memory SQLite fixture in `conftest.py` seeds from `inventory.json` and gives each test a clean slate.
+All 48 tests run without a live LLM or network connection. The in-memory SQLite fixture in `conftest.py` seeds from `inventory.json` + `safety_rules.json` and gives each test a clean slate.
 
 ```
 tests/test_guardrails.py  (16 tests)
-  ├── Rule 1: flammable limit rejected, accepted at boundary, bypassed for non-flammable
-  ├── Rule 2: vasoconstrictor limit rejected, accepted at boundary
+  ├── Tag-based rules: flammable limit rejected, accepted at boundary, bypassed for untagged
+  ├── Tag-based rules: vasoconstrictor limit rejected, accepted at boundary
   ├── Negative stock: consume beyond stock rejected, exact consumption accepted
   ├── Non-existent item: returns "not found" rejection
   ├── Unknown operation: run_all_guardrails defensive fallback
   └── Audit log: SUCCESS entry written, REJECTED entry written, stock unchanged after reject
 
-tests/test_pydantic.py  (7 tests)
+tests/test_pydantic.py  (9 tests)
   ├── quantity = 0 → ValidationError
   ├── quantity < 0 → ValidationError
   ├── item_id = "INVALID" → ValidationError (pattern mismatch)
@@ -277,9 +315,9 @@ tests/test_pydantic.py  (7 tests)
   ├── operation = "order" → ValidationError (not Literal["add","consume"])
   └── valid add / valid consume → pass
 
-tests/test_repository.py  (8 tests)
+tests/test_repository.py  (9 tests)
   ├── get_all_items: returns all 7 seeded items
-  ├── get_item: found / not found
+  ├── get_item: found / not found / tags loaded correctly
   ├── search_items: exact match, multiple matches, no match, case-insensitive
   └── search_items: category match ("anesthetic" → all 3 Anesthetics)
 ```
@@ -292,6 +330,9 @@ Coverage intentionally excludes RAG (requires 90MB model download) and tool laye
 
 **Deterministic guardrails over prompt-based**
 Prompt instructions can be overridden by injection. A Python function that runs before `inv_session.commit()` cannot be — it is not in the prompt. The guardrail logic is a SQL aggregate query and a numeric comparison.
+
+**Data-driven safety rules over hardcoded checks**
+Previously each safety property was a boolean column (`flammable`, `vasoconstrictor`) with a dedicated guardrail function. This required schema migrations and new code for every new constraint. Now safety properties are tags (many-to-many), and limits are rows in `safety_rules`. One generic `check_tag_limits()` function handles all tag-based rules. Adding a new constraint (e.g. "corrosive ≤ 5L") is a data change, not a code change.
 
 **Two-session audit pattern over single session**
 A single session would rollback the audit entry alongside the inventory transaction on guardrail failure. A separate `audit_session` that always commits independently guarantees Rule 3 regardless of inventory outcome.

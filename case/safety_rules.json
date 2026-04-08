@@ -1,0 +1,14 @@
+[
+  {
+    "tag": "flammable",
+    "limit": 10,
+    "unit": "L",
+    "rule_reference": "safety_regulation.txt Rule 1"
+  },
+  {
+    "tag": "vasoconstrictor",
+    "limit": 20,
+    "unit": "packs",
+    "rule_reference": "safety_regulation.txt Rule 2"
+  }
+]

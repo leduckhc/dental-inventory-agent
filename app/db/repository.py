@@ -4,17 +4,16 @@ Two-session pattern:
   inv_session   — inventory table, rolled back on guardrail failure
   audit_session — audit_logs table, always commits independently
 
-This guarantees Rule 3 (every attempt logged) even when Rule 1 or 2 rejects the order.
+This guarantees Rule 3 (every attempt logged) even when a safety rule rejects the order.
 """
 
 from datetime import UTC, datetime
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.db.schema import AuditLogORM, InventoryItemORM
 from app.guardrails.checks import run_all_guardrails
-from app.models.domain import GuardrailResult, InventoryItem, ItemAttributes
+from app.models.domain import GuardrailResult, InventoryItem
 
 # ── Read helpers ────────────────────────────────────────────────────────────
 
@@ -35,6 +34,8 @@ def search_items(session: Session, query: str) -> list[InventoryItem]:
     Category prefix matching catches generic terms like 'anesthetic' (category='A')
     or 'disinfectant' (category='D') that won't appear in specific product names.
     """
+    from sqlalchemy import func
+
     q = f"%{query.lower()}%"
     rows = (
         session.query(InventoryItemORM)
@@ -98,7 +99,7 @@ def _orm_to_domain(row: InventoryItemORM) -> InventoryItem:
         category=row.category,
         stock=row.stock,
         unit=row.unit,
-        attributes=ItemAttributes(flammable=row.flammable, vasoconstrictor=row.vasoconstrictor),
+        tags=[it.tag.name for it in row.item_tags],
     )
 
 

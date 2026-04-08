@@ -5,18 +5,13 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class ItemAttributes(BaseModel):
-    flammable: bool
-    vasoconstrictor: bool
-
-
 class InventoryItem(BaseModel):
     id: str
     name: str
     category: str
     stock: int
     unit: str
-    attributes: ItemAttributes
+    tags: list[str] = []
 
 
 class StockUpdateInput(BaseModel):
