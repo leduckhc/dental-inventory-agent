@@ -133,7 +133,7 @@ langchain-huggingface==1.2.1
     # via dental-inventory-agent
 langchain-openai==1.1.12
     # via dental-inventory-agent
-langchain-text-splitters==1.1.1
+langchain-text-splitters==1.1.2
     # via langchain-classic
 langgraph==1.1.4
     # via
