@@ -131,7 +131,7 @@ langchain-core==1.2.24
     #   langgraph-prebuilt
 langchain-huggingface==1.2.1
     # via dental-inventory-agent
-langchain-openai==1.1.12
+langchain-openai==1.1.14
     # via dental-inventory-agent
 langchain-text-splitters==1.1.1
     # via langchain-classic
