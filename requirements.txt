@@ -114,7 +114,7 @@ jsonpointer==3.1.1
     # via jsonpatch
 langchain==1.2.14
     # via dental-inventory-agent
-langchain-classic==1.0.3
+langchain-classic==1.0.7
     # via langchain-community
 langchain-community==0.4.1
     # via dental-inventory-agent
